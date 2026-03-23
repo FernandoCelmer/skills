@@ -4,14 +4,9 @@ A marketplace of Claude Code skills. Install the marketplace once, then install 
 
 ## Getting Started
 
-**Step 1** — Install the marketplace (one time only):
-
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FernandoCelmer/skills/master/marketplace.md \
-  -o ~/.claude/commands/marketplace.md
+claude plugins marketplace add FernandoCelmer/skills
 ```
-
-**Step 2** — Start a new Claude Code session and use `/marketplace` to browse and install skills.
 
 ---
 
