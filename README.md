@@ -1,35 +1,37 @@
 # Skills
 
-Claude Code skills available in this marketplace.
+A collection of Claude Code skills ready to install.
 
-## Categories
+## Available Skills
 
-| Category | Path | Description |
-|---|---|---|
-| development | [development/](development/) | Skills for software development workflows |
-| git | [git/](git/) | Skills for git operations |
-| productivity | [productivity/](productivity/) | Skills for productivity and daily tasks |
-| devops | [devops/](devops/) | Skills for DevOps, CI/CD and infrastructure |
+| Name | Version | Category | Description |
+|---|---|---|---|
+| [repo-audit](repo-audit/commands/repo-audit.md) | 1.0.0 | development | Deep technical audit of a repository: find bugs, gaps, missing tests and security issues, then create GitHub issues for findings |
+| [review-issues](review-issues/commands/review-issues.md) | 1.0.0 | development | Analyze open issues across one or more repositories |
+| [smart-review-pr](smart-review-pr/commands/smart-review-pr.md) | 2.0.0 | development | Comprehensive PR review covering code quality, security, architecture and design patterns |
 
-## How to install a skill
+## How to install
 
-Ask Claude to install a skill from this marketplace:
+**Via Claude Code** — ask Claude:
 
 ```
-Install the skill "<name>" from https://github.com/FernandoCelmer/dotfiles
+install skill <name>
 ```
 
-Or run the installer directly:
+**Via curl:**
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/FernandoCelmer/dotfiles/master/install.sh | bash -s skill <name>
+curl -fsSL https://raw.githubusercontent.com/FernandoCelmer/skills/master/<name>/commands/<name>.md \
+  -o ~/.claude/commands/<name>.md
 ```
+
+After installing, start a new Claude Code session and use `/<name>`.
 
 ## How to contribute
 
 1. Fork this repository
-2. Create your skill file in the appropriate category folder
-3. Add the skill entry to [registry.json](../registry.json)
+2. Create your skill at `<name>/commands/<name>.md`
+3. Add the entry to [registry.json](registry.json)
 4. Open a Pull Request
 
 ### Skill file format
@@ -38,6 +40,7 @@ curl -fsSL https://raw.githubusercontent.com/FernandoCelmer/dotfiles/master/inst
 ---
 name: skill-name
 description: What this skill does (used by Claude to decide when to invoke it)
+version: 1.0.0
 ---
 
 Full prompt/instructions for the skill...
