@@ -1,6 +1,19 @@
-# Skills
+# Skills Marketplace
 
-A collection of Claude Code skills ready to install.
+A marketplace of Claude Code skills. Install the marketplace once, then install any skill directly from Claude Code.
+
+## Getting Started
+
+**Step 1** — Install the marketplace (one time only):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/FernandoCelmer/skills/master/marketplace.md \
+  -o ~/.claude/commands/marketplace.md
+```
+
+**Step 2** — Start a new Claude Code session and use `/marketplace` to browse and install skills.
+
+---
 
 ## Available Skills
 
@@ -10,21 +23,7 @@ A collection of Claude Code skills ready to install.
 | [review-issues](review-issues/commands/review-issues.md) | 1.0.0 | development | Analyze open issues across one or more repositories |
 | [smart-review-pr](smart-review-pr/commands/smart-review-pr.md) | 2.0.0 | development | Comprehensive PR review covering code quality, security, architecture and design patterns |
 
-## How to install
-
-Open Claude Code and run:
-
-```
-install skill repo-audit from https://github.com/FernandoCelmer/skills
-```
-
-```
-install skill review-issues from https://github.com/FernandoCelmer/skills
-```
-
-```
-install skill smart-review-pr from https://github.com/FernandoCelmer/skills
-```
+---
 
 ## How to contribute
 
