@@ -5,21 +5,21 @@
       "version": "1.0.0",
       "description": "Analyze open issues across one or more repositories",
       "category": "development",
-      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/review-issues/commands/review-issues.md"
+      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/review-issues/skills/review-issues/SKILL.md"
     },
     {
       "name": "smart-review-pr",
       "version": "2.0.0",
       "description": "Comprehensive PR review covering code quality, security, architecture and design patterns",
       "category": "development",
-      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/smart-review-pr/commands/smart-review-pr.md"
+      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/smart-review-pr/skills/smart-review-pr/SKILL.md"
     },
     {
       "name": "repo-audit",
       "version": "1.0.0",
       "description": "Deep technical audit of a repository: find bugs, gaps, missing tests and security issues, then create GitHub issues for findings",
       "category": "development",
-      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/repo-audit/commands/repo-audit.md"
+      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/repo-audit/skills/repo-audit/SKILL.md"
     }
   ],
   "plugins": []
