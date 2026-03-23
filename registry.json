@@ -1,13 +1,6 @@
 {
   "skills": [
     {
-      "name": "marketplace",
-      "version": "1.0.0",
-      "description": "Install, list or search skills and plugins from the dotfiles marketplace",
-      "category": "productivity",
-      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/marketplace.md"
-    },
-    {
       "name": "review-issues",
       "version": "1.0.0",
       "description": "Analyze open issues across one or more repositories",
