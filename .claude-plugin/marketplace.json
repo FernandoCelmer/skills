@@ -1,0 +1,44 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "FernandoCelmer-skills",
+  "description": "Skills and plugins for code review, PR validation, and repository auditing by FernandoCelmer",
+  "owner": {
+    "name": "Fernando Celmer",
+    "email": "email@fernandocelmer.com"
+  },
+  "plugins": [
+    {
+      "name": "review-issues",
+      "description": "Analyze open issues across one or more repositories",
+      "version": "1.0.0",
+      "author": {
+        "name": "Fernando Celmer"
+      },
+      "source": "./review-issues",
+      "category": "development",
+      "strict": false
+    },
+    {
+      "name": "smart-review-pr",
+      "description": "Comprehensive PR review covering code quality, security, architecture and design patterns",
+      "version": "2.0.0",
+      "author": {
+        "name": "Fernando Celmer"
+      },
+      "source": "./smart-review-pr",
+      "category": "development",
+      "strict": false
+    },
+    {
+      "name": "repo-audit",
+      "description": "Deep technical audit of a repository: find bugs, gaps, missing tests and security issues, then create GitHub issues for findings",
+      "version": "1.0.0",
+      "author": {
+        "name": "Fernando Celmer"
+      },
+      "source": "./repo-audit",
+      "category": "development",
+      "strict": false
+    }
+  ]
+}

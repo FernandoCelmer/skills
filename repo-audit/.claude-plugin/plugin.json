@@ -1,0 +1,7 @@
+{
+  "name": "repo-audit",
+  "description": "Deep technical audit of a repository: find bugs, gaps, missing tests and security issues, then create GitHub issues for findings",
+  "author": {
+    "name": "Fernando Celmer"
+  }
+}

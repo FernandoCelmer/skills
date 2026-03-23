@@ -1,0 +1,7 @@
+{
+  "name": "review-issues",
+  "description": "Analyze open issues across one or more repositories",
+  "author": {
+    "name": "Fernando Celmer"
+  }
+}
