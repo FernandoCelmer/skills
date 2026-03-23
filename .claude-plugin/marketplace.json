@@ -14,7 +14,7 @@
       "author": {
         "name": "Fernando Celmer"
       },
-      "source": "./review-issues",
+      "source": "./skills/review-issues",
       "category": "development",
       "strict": false
     },
@@ -25,7 +25,7 @@
       "author": {
         "name": "Fernando Celmer"
       },
-      "source": "./smart-review-pr",
+      "source": "./skills/smart-review-pr",
       "category": "development",
       "strict": false
     },
@@ -36,7 +36,7 @@
       "author": {
         "name": "Fernando Celmer"
       },
-      "source": "./repo-audit",
+      "source": "./skills/repo-audit",
       "category": "development",
       "strict": false
     }
