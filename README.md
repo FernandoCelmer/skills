@@ -15,7 +15,15 @@ A collection of Claude Code skills ready to install.
 Open Claude Code and run:
 
 ```
-install skill <name>
+install skill repo-audit from https://github.com/FernandoCelmer/skills
+```
+
+```
+install skill review-issues from https://github.com/FernandoCelmer/skills
+```
+
+```
+install skill smart-review-pr from https://github.com/FernandoCelmer/skills
 ```
 
 ## How to contribute
