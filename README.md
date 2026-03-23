@@ -12,30 +12,11 @@ A collection of Claude Code skills ready to install.
 
 ## How to install
 
-Open the Claude Code terminal and run:
+Open Claude Code and run:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/FernandoCelmer/skills/master/<name>/commands/<name>.md \
-  -o ~/.claude/commands/<name>.md
 ```
-
-**Examples:**
-
-```bash
-# repo-audit
-curl -fsSL https://raw.githubusercontent.com/FernandoCelmer/skills/master/repo-audit/commands/repo-audit.md \
-  -o ~/.claude/commands/repo-audit.md
-
-# review-issues
-curl -fsSL https://raw.githubusercontent.com/FernandoCelmer/skills/master/review-issues/commands/review-issues.md \
-  -o ~/.claude/commands/review-issues.md
-
-# smart-review-pr
-curl -fsSL https://raw.githubusercontent.com/FernandoCelmer/skills/master/smart-review-pr/commands/smart-review-pr.md \
-  -o ~/.claude/commands/smart-review-pr.md
+install skill <name>
 ```
-
-After installing, start a new Claude Code session and use `/<name>`.
 
 ## How to contribute
 
