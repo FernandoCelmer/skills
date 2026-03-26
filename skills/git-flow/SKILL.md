@@ -29,7 +29,7 @@ When implementing something derived from a GitHub issue:
 Every commit message must follow this exact format:
 
 ```
-ICON TYPE-#NUMBER: (type) Comment in English
+ICON TYPE-#NUMBER: Comment in English
 ```
 
 ### Icons and types
@@ -49,14 +49,14 @@ ICON TYPE-#NUMBER: (type) Comment in English
 ### Examples
 
 ```
-⚙️ FEATURE-#42: (feature) Add S3 storage provider
-🪲 BUG-#68: (bug) Fix busy-wait loop in parallel execution mode
-📌 ISSUE-#73: (feature) Add LLM pipeline example to documentation
-📝 PEP8-#70: (pep8) Fix return type annotation on TaskBuilder.add
-❤️ TEST-#42: (test) Add unit tests for StorageS3
-📘 DOCS-#73: (docs) Add AI/LLM pipeline usage guide
-⬆️ CI/CD-#48: (ci) Add GitHub Actions workflow for automated tests
-⚠️ SECURITY-#0: (security) Sanitize user input in CLI arguments
+⚙️ FEATURE-#42: Add S3 storage provider
+🪲 BUG-#68: Fix busy-wait loop in parallel execution mode
+📌 ISSUE-#73: Add LLM pipeline example to documentation
+📝 PEP8-#70: Fix return type annotation on TaskBuilder.add
+❤️ TEST-#42: Add unit tests for StorageS3
+📘 DOCS-#73: Add AI/LLM pipeline usage guide
+⬆️ CI/CD-#48: Add GitHub Actions workflow for automated tests
+⚠️ SECURITY-#0: Sanitize user input in CLI arguments
 ```
 
 ---
