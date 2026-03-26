@@ -20,6 +20,13 @@
       "description": "Deep technical audit of a repository: find bugs, gaps, missing tests and security issues, then create GitHub issues for findings",
       "category": "development",
       "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/repo-audit/SKILL.md"
+    },
+    {
+      "name": "git-flow",
+      "version": "1.0.0",
+      "description": "Enforce branch naming (feature/ISSUE-NUMBER from develop) and commit message conventions (icon + type + issue reference) for every implementation",
+      "category": "development",
+      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/git-flow/SKILL.md"
     }
   ],
   "plugins": []
