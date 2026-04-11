@@ -1,7 +1,7 @@
 ---
 name: git-flow
 description: Enforce branch naming and commit message conventions. Use when the user asks to implement something from an issue, create a branch, or commit changes. Branches follow the pattern feature/ISSUE-NUMBER from develop. Commits follow the icon+type+issue pattern.
-version: 1.0.0
+version: 1.1.0
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -61,6 +61,68 @@ ICON TYPE-#NUMBER: Comment in English
 
 ---
 
+## Structured and separated commits
+
+When implementing multiple fixes or changes in the same branch, **always create one commit per file or per logical concern**. Never bundle unrelated changes into a single commit.
+
+### Rules for structuring commits
+
+1. **One commit per file or concern** — each commit must be independently understandable and revertable
+2. **Stage only related files** — use `git add <specific files>` instead of `git add .` or `git add -A`
+3. **Commit in logical order** — infrastructure/config changes first, then implementation, then tests, then docs
+4. **Separate by type** — never mix bug fixes with formatting, tests with docs, or config with implementation in the same commit
+
+### Commit ordering priority
+
+1. Config / dependency changes (`pyproject.toml`, `requirements.txt`, `poetry.lock`)
+2. Implementation (source code)
+3. Tests
+4. Documentation (`README.md`, `DEPLOY.md`, release notes)
+5. Formatting / PEP8 fixes
+
+### Example of structured commits for a single issue
+
+```bash
+# 1. Implementation fix
+git add dotflow/core/serializers/task.py
+git commit -m "🪲 BUG-#247: Fix _serialize_context crash with non-Context list items"
+
+# 2. Tests for the fix
+git add tests/core/test_serializer_task.py
+git commit -m "❤️ TEST-#247: Add tests for list, tuple, and mixed Context serialization"
+
+# 3. Config change
+git add pyproject.toml
+git commit -m "⚙️ FEATURE-#247: Configure pytest testpaths to exclude examples"
+
+# 4. Lock file
+git add poetry.lock
+git commit -m "📦 PyPI-#247: Regenerate poetry.lock"
+
+# 5. Documentation
+git add docs/nav/development/release-notes.md
+git commit -m "📘 DOCS-#247: Add PR #249 to release notes"
+
+# 6. Formatting
+git add dotflow/core/serializers/task.py
+git commit -m "📝 PEP8-#247: Apply ruff format with project config"
+```
+
+### When NOT to split commits
+
+- A test and the exact implementation it covers when they are tightly coupled
+- Import changes required by and only meaningful alongside a specific fix
+- Minor co-located changes (e.g. fixing a typo in the same line as a bug fix)
+
+### Strictly forbidden
+
+- `git add .` or `git add -A` — always stage specific files by name
+- Bundling unrelated files in one commit (e.g. `task.py` + `README.md`)
+- Committing lock files together with source code changes
+- Committing formatting fixes together with logic changes
+
+---
+
 ## Workflow for implementing an issue
 
 When the user says "implement issue #N" or "work on issue #N":
@@ -104,4 +166,6 @@ When the user says "implement issue #N" or "work on issue #N":
 - Never branch from `main` or `master` for feature work
 - Always include the issue number in both branch name and commit message
 - Commit messages must be in English
+- **Always create one commit per file or per logical concern — never bundle unrelated changes**
+- **Stage specific files explicitly — never use `git add .` or `git add -A`**
 - Always confirm with the user before pushing or opening a PR
