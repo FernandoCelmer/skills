@@ -1,7 +1,7 @@
 ---
 name: git-flow
 description: Enforce branch naming and commit message conventions. Use when the user asks to implement something from an issue, create a branch, or commit changes. Branches follow the pattern feature/ISSUE-NUMBER from develop. Commits follow the icon+type+issue pattern.
-version: 1.2.0
+version: 1.3.0
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -30,6 +30,12 @@ Every commit message must follow this exact format:
 
 ```
 ICON TYPE-#NUMBER: Comment in English
+```
+
+When there is **no issue associated**, omit the issue number:
+
+```
+ICON TYPE: Comment in English
 ```
 
 ### Icons and types by language/ecosystem
