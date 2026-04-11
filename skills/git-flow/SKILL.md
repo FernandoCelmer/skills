@@ -1,7 +1,7 @@
 ---
 name: git-flow
 description: Enforce branch naming and commit message conventions. Use when the user asks to implement something from an issue, create a branch, or commit changes. Branches follow the pattern feature/ISSUE-NUMBER from develop. Commits follow the icon+type+issue pattern.
-version: 1.1.0
+version: 1.2.0
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -32,31 +32,74 @@ Every commit message must follow this exact format:
 ICON TYPE-#NUMBER: Comment in English
 ```
 
-### Icons and types
+### Icons and types by language/ecosystem
+
+**Detect the project language** from `pyproject.toml`, `package.json`, `Cargo.toml`, `go.mod`, etc. and use only the icons that apply.
+
+#### Universal (all languages)
 
 | Icon | Type     | When to use                                |
 |------|----------|--------------------------------------------|
 | ⚙️   | FEATURE  | New feature                                |
-| 📝   | PEP8     | Formatting fixes following PEP8            |
 | 📌   | ISSUE    | Reference to issue / work in progress      |
 | 🪲   | BUG      | Bug fix                                    |
 | 📘   | DOCS     | Documentation changes                      |
-| 📦   | PyPI     | PyPI releases                              |
 | ❤️   | TEST     | Automated tests                            |
 | ⬆️   | CI/CD    | Changes in continuous integration/delivery |
 | ⚠️   | SECURITY | Security improvements                      |
 
+#### Python only
+
+| Icon | Type     | When to use                                |
+|------|----------|--------------------------------------------|
+| 📝   | PEP8     | Formatting fixes following PEP8            |
+| 📦   | PyPI     | PyPI releases, dependency updates          |
+
+#### JavaScript / TypeScript (React, Node, etc.)
+
+| Icon | Type     | When to use                                |
+|------|----------|--------------------------------------------|
+| 📝   | LINT     | ESLint, Prettier, formatting fixes         |
+| 📦   | NPM      | npm/yarn releases, dependency updates      |
+
+#### Rust
+
+| Icon | Type     | When to use                                |
+|------|----------|--------------------------------------------|
+| 📝   | CLIPPY   | Clippy lints and formatting fixes          |
+| 📦   | CRATE    | Crate releases, dependency updates         |
+
+#### Go
+
+| Icon | Type     | When to use                                |
+|------|----------|--------------------------------------------|
+| 📝   | LINT     | golangci-lint, gofmt fixes                 |
+| 📦   | MOD      | go.mod dependency updates                  |
+
 ### Examples
 
+**Python:**
 ```
 ⚙️ FEATURE-#42: Add S3 storage provider
 🪲 BUG-#68: Fix busy-wait loop in parallel execution mode
-📌 ISSUE-#73: Add LLM pipeline example to documentation
 📝 PEP8-#70: Fix return type annotation on TaskBuilder.add
-❤️ TEST-#42: Add unit tests for StorageS3
-📘 DOCS-#73: Add AI/LLM pipeline usage guide
-⬆️ CI/CD-#48: Add GitHub Actions workflow for automated tests
-⚠️ SECURITY-#0: Sanitize user input in CLI arguments
+📦 PyPI-#42: Update dotflow to 0.15.0.dev5
+```
+
+**JavaScript / React:**
+```
+⚙️ FEATURE-#42: Add dashboard chart component
+🪲 BUG-#68: Fix state leak in useEffect cleanup
+📝 LINT-#70: Fix ESLint warnings in api module
+📦 NPM-#42: Update react to 19.1.0
+```
+
+**Rust:**
+```
+⚙️ FEATURE-#42: Add S3 backend for storage
+🪲 BUG-#68: Fix deadlock in async task pool
+📝 CLIPPY-#70: Fix needless borrow warnings
+📦 CRATE-#42: Bump tokio to 1.40
 ```
 
 ---
@@ -74,38 +117,42 @@ When implementing multiple fixes or changes in the same branch, **always create 
 
 ### Commit ordering priority
 
-1. Config / dependency changes (`pyproject.toml`, `requirements.txt`, `poetry.lock`)
+1. Config / dependency changes (`pyproject.toml`, `package.json`, `Cargo.toml`, lock files)
 2. Implementation (source code)
 3. Tests
 4. Documentation (`README.md`, `DEPLOY.md`, release notes)
-5. Formatting / PEP8 fixes
+5. Formatting / lint fixes
 
 ### Example of structured commits for a single issue
 
+**Python:**
 ```bash
-# 1. Implementation fix
 git add dotflow/core/serializers/task.py
 git commit -m "🪲 BUG-#247: Fix _serialize_context crash with non-Context list items"
 
-# 2. Tests for the fix
 git add tests/core/test_serializer_task.py
 git commit -m "❤️ TEST-#247: Add tests for list, tuple, and mixed Context serialization"
 
-# 3. Config change
 git add pyproject.toml
 git commit -m "⚙️ FEATURE-#247: Configure pytest testpaths to exclude examples"
 
-# 4. Lock file
 git add poetry.lock
 git commit -m "📦 PyPI-#247: Regenerate poetry.lock"
+```
 
-# 5. Documentation
-git add docs/nav/development/release-notes.md
-git commit -m "📘 DOCS-#247: Add PR #249 to release notes"
+**JavaScript / React:**
+```bash
+git add src/components/Dashboard.tsx
+git commit -m "⚙️ FEATURE-#42: Add dashboard chart component"
 
-# 6. Formatting
-git add dotflow/core/serializers/task.py
-git commit -m "📝 PEP8-#247: Apply ruff format with project config"
+git add src/__tests__/Dashboard.test.tsx
+git commit -m "❤️ TEST-#42: Add unit tests for Dashboard component"
+
+git add package.json
+git commit -m "📦 NPM-#42: Add recharts dependency"
+
+git add package-lock.json
+git commit -m "📦 NPM-#42: Regenerate package-lock.json"
 ```
 
 ### When NOT to split commits
@@ -120,6 +167,8 @@ git commit -m "📝 PEP8-#247: Apply ruff format with project config"
 - Bundling unrelated files in one commit (e.g. `task.py` + `README.md`)
 - Committing lock files together with source code changes
 - Committing formatting fixes together with logic changes
+- Using Python-specific types (PEP8, PyPI) in non-Python projects
+- Using JS-specific types (LINT, NPM) in non-JS projects
 
 ---
 
@@ -166,6 +215,7 @@ When the user says "implement issue #N" or "work on issue #N":
 - Never branch from `main` or `master` for feature work
 - Always include the issue number in both branch name and commit message
 - Commit messages must be in English
+- **Detect the project language and use only applicable commit types**
 - **Always create one commit per file or per logical concern — never bundle unrelated changes**
 - **Stage specific files explicitly — never use `git add .` or `git add -A`**
 - Always confirm with the user before pushing or opening a PR
