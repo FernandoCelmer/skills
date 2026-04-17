@@ -1,7 +1,7 @@
 ---
 name: email-profile
 description: Generate Python code using the email-profile library for email automation. Use when the user asks to send emails, read inbox, search messages, manage mailboxes, sync/backup emails, handle attachments, or any IMAP/SMTP task with email-profile.
-version: 1.0.0
+version: 1.1.0
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -23,7 +23,7 @@ pip install email-profile
 ### Imports
 
 ```python
-from email_profile import Email, StorageSQLite, Q, Query, Attachment
+from email_profile import Email, StorageSQLite, Q, Query, Message
 ```
 
 ---
@@ -37,11 +37,14 @@ from email_profile import Email, StorageSQLite, Q, Query, Attachment
 app = Email.from_email("user@gmail.com", "app-password")
 
 # Option B: From environment variables / .env file
-# Requires: EMAIL_HOST, EMAIL_USER, EMAIL_PASSWORD (optional: EMAIL_PORT, EMAIL_SSL)
+# Requires: EMAIL_SERVER, EMAIL_USERNAME, EMAIL_PASSWORD
 app = Email.from_env()
 
 # Option C: Manual configuration
 app = Email(server="imap.gmail.com", user="user@gmail.com", password="app-password")
+
+# Option D: Positional shorthand (auto-discovers server from address)
+app = Email("user@gmail.com", "app-password")
 ```
 
 ### Context manager (recommended)
@@ -49,7 +52,7 @@ app = Email(server="imap.gmail.com", user="user@gmail.com", password="app-passwo
 ```python
 with Email.from_email("user@gmail.com", "password") as app:
     # connection auto-opens and auto-closes
-    messages = app.inbox.all()
+    messages = app.inbox.where().list()
 ```
 
 ### Manual connection
@@ -99,36 +102,72 @@ folder = app.mailbox("Projects/Reports")
 
 ## 3. Searching & Querying Messages
 
-### Built-in search methods
+### Using `.where()` on mailbox
+
+The `.where()` method returns a lazy `Where` object. Call `.messages()`, `.list()`, `.first()`, `.last()`, `.count()`, or `.exists()` to materialize results.
 
 ```python
 # All messages in inbox
-messages = app.inbox.all()
+results = app.inbox.where()
+messages = results.list()         # materialized list
+count = results.count()           # int
+first_msg = results.first()       # single Message or None
 
 # Unread messages
-messages = app.inbox.unread()
+messages = app.inbox.where(unseen=True).list()
 
-# Recent messages (last N days)
-messages = app.inbox.recent(days=7)
-
-# Full-text search
-messages = app.inbox.search("invoice")
+# Iterate lazily
+for msg in app.inbox.where().messages():
+    print(msg.subject)
 ```
 
-### Advanced queries with Q
+### Shortcut methods on Email object
+
+```python
+# These return Where objects operating on inbox
+app.all()              # all inbox messages
+app.unread()           # unread inbox messages
+app.recent(days=7)     # messages from last N days
+app.search("invoice")  # full-text search in inbox
+```
+
+### Fetch modes
+
+```python
+# Full message with attachments (default)
+for msg in app.inbox.where().messages(mode="full"):
+    ...
+
+# Headers + body, no attachments (faster)
+for msg in app.inbox.where().messages(mode="text"):
+    ...
+
+# Headers only (cheapest)
+for msg in app.inbox.where().messages(mode="headers"):
+    ...
+```
+
+### Advanced queries with Q (static methods)
 
 ```python
 from email_profile import Q
 
-# Combine conditions with AND / OR / NOT
-q = Q(from_="boss@company.com") & Q(subject="urgent")
-messages = app.inbox.search(q)
+# Combine conditions with & (AND), | (OR), ~ (NOT)
+q = Q.from_("boss@company.com") & Q.subject("urgent")
+messages = app.inbox.where(q).list()
 
 # OR query
-q = Q(from_="alice@example.com") | Q(from_="bob@example.com")
+q = Q.from_("alice@example.com") | Q.from_("bob@example.com")
 
 # NOT query
-q = ~Q(subject="spam")
+q = ~Q.subject("spam")
+
+# Other Q methods
+Q.unseen()
+Q.seen()
+Q.since(date(2025, 1, 1))
+Q.before(date(2025, 6, 1))
+Q.larger(1_000_000)
 ```
 
 ### Query with kwargs
@@ -136,7 +175,15 @@ q = ~Q(subject="spam")
 ```python
 from email_profile import Query
 
-messages = app.inbox.search(Query(from_="noreply@github.com", subject="PR"))
+q = Query(subject="PR", unseen=True, since=date(2025, 1, 1))
+
+# Use from_ or from_who for sender filter
+q = Query(from_who="noreply@github.com", subject="PR")
+
+# Chaining
+q = Query(subject="report").exclude(from_who="spam@example.com").or_(subject="invoice")
+
+messages = app.inbox.where(q).list()
 ```
 
 ---
@@ -145,12 +192,15 @@ messages = app.inbox.search(Query(from_="noreply@github.com", subject="PR"))
 
 ### Access message fields
 
+Message is a Pydantic model with these fields:
+
 ```python
-for msg in app.inbox.recent(days=3):
+for msg in app.inbox.where(unseen=True).messages():
     print(msg.subject)
     print(msg.from_)
     print(msg.to_)
     print(msg.date)
+    print(msg.uid)
     print(msg.message_id)
     print(msg.body_text_plain)
     print(msg.body_text_html)
@@ -160,6 +210,8 @@ for msg in app.inbox.recent(days=3):
     print(msg.in_reply_to)
     print(msg.references)
     print(msg.content_type)
+    print(msg.attachments)
+    print(msg.headers)
 
     # Mailing list headers
     print(msg.list_id)
@@ -186,8 +238,18 @@ app.send(
 app.send(
     to="recipient@example.com",
     subject="Report",
-    body="<h1>Monthly Report</h1><p>See attached.</p>",
-    html=True
+    html="<h1>Monthly Report</h1><p>See attached.</p>"
+)
+```
+
+### Plain text + HTML (multipart)
+
+```python
+app.send(
+    to="recipient@example.com",
+    subject="Report",
+    body="Monthly Report - See attached.",
+    html="<h1>Monthly Report</h1><p>See attached.</p>"
 )
 ```
 
@@ -215,37 +277,37 @@ app.send(
 )
 ```
 
-### Send pre-built EmailMessage
+### Save to sent folder
 
 ```python
-from email.message import EmailMessage
-
-msg = EmailMessage()
-msg["Subject"] = "Custom"
-msg["To"] = "recipient@example.com"
-msg.set_content("Body")
-
-app.send_message(msg)
+app.send(
+    to="recipient@example.com",
+    subject="Hello",
+    body="Content",
+    save_to_sent=True  # default is True
+)
 ```
 
 ---
 
 ## 6. Reply & Forward
 
+Reply and forward are methods on the **Email object**, not on Message:
+
 ### Reply to a message
 
 ```python
 # Reply to sender only
-msg.reply(body="Thanks for the update!")
+app.reply(msg, body="Thanks for the update!")
 
 # Reply all
-msg.reply(body="Acknowledged.", reply_all=True)
+app.reply(msg, body="Acknowledged.", reply_all=True)
 ```
 
 ### Forward a message
 
 ```python
-msg.forward(to="colleague@example.com")
+app.forward(msg, to="colleague@example.com", body="FYI")
 ```
 
 ---
@@ -255,7 +317,7 @@ msg.forward(to="colleague@example.com")
 ### Download attachments from a message
 
 ```python
-for msg in app.inbox.search("invoice"):
+for msg in app.inbox.where(Q.subject("invoice")).messages():
     for attachment in msg.attachments:
         print(attachment.file_name)
         print(attachment.content_type)
@@ -272,30 +334,38 @@ raw_bytes = attachment.content  # bytes
 
 ## 8. Message Flag Operations
 
-### Mark as read / unread
+Flag operations are methods on the **mailbox**, not on the message. They accept a Message, UID string, or int:
+
+### Mark as seen / unseen
 
 ```python
-msg.mark_read()
-msg.mark_unread()
+app.inbox.mark_seen(msg)
+app.inbox.mark_unseen(msg)
 ```
 
 ### Flag / unflag
 
 ```python
-msg.flag()
-msg.unflag()
+app.inbox.flag(msg)
+app.inbox.unflag(msg)
 ```
 
 ### Move to folder
 
 ```python
-msg.move("Archive")
+app.inbox.move(msg, "Archive")
+```
+
+### Copy to folder
+
+```python
+app.inbox.copy(msg, "Backup")
 ```
 
 ### Delete
 
 ```python
-msg.delete()
+app.inbox.delete(msg)
 ```
 
 ---
@@ -305,28 +375,27 @@ msg.delete()
 ### Sync emails to local SQLite storage
 
 ```python
-storage = StorageSQLite("backup.db")
-app = Email.from_email("user@gmail.com", "password", storage=storage)
+app = Email.from_email("user@gmail.com", "password")
+app.storage = StorageSQLite("backup.db")
 
 with app:
-    app.sync()  # incremental — only downloads new emails
+    result = app.sync()  # incremental — only downloads new emails
+    print(f"{result.inserted} new, {result.skipped} skipped")
 ```
 
 ### Restore from backup to server
 
 ```python
 with app:
-    app.restore()
+    count = app.restore()  # returns int (count of restored messages)
+    print(f"Restored {count} messages")
 ```
 
-### Custom storage backend
+### Storage via constructor
 
 ```python
-from email_profile import StorageABC
-
-class MyStorage(StorageABC):
-    # implement required methods
-    ...
+storage = StorageSQLite("backup.db")
+app = Email(server="imap.gmail.com", user="user@gmail.com", password="pw", storage=storage)
 ```
 
 ---
@@ -362,12 +431,12 @@ except RateLimited:
 ### Retry decorator
 
 ```python
-from email_profile import with_retry
+from email_profile.retry import with_retry
 
-@with_retry(attempts=3, delay=1.0)
+@with_retry(attempts=3, initial_delay=1.0, max_delay=30.0)
 def fetch_emails():
     with Email.from_env() as app:
-        return app.inbox.all()
+        return app.inbox.where().list()
 ```
 
 ---
@@ -387,15 +456,23 @@ No manual server configuration is needed for most providers.
 
 ## 13. Environment Variables
 
-Supported `.env` variables:
+Supported `.env` variables for `Email.from_env()`:
 
 | Variable | Description | Default |
 |---|---|---|
-| `EMAIL_HOST` | IMAP server hostname | (auto-discovered) |
-| `EMAIL_USER` | Email address / username | (required) |
+| `EMAIL_SERVER` | IMAP server hostname | (auto-discovered) |
+| `EMAIL_USERNAME` | Email address / username | (required) |
 | `EMAIL_PASSWORD` | Password / app password | (required) |
-| `EMAIL_PORT` | IMAP port | `993` |
-| `EMAIL_SSL` | Enable SSL | `true` |
+
+Custom env var names can be passed to `from_env()`:
+
+```python
+app = Email.from_env(
+    server_var="MY_EMAIL_SERVER",
+    user_var="MY_EMAIL_USER",
+    password_var="MY_EMAIL_PASSWORD"
+)
+```
 
 ---
 
@@ -405,9 +482,12 @@ Supported `.env` variables:
 2. **Always use context managers** (`with` statement) for automatic cleanup
 3. **Use app passwords** for Gmail, Outlook, and other providers that require them — never raw account passwords
 4. **Handle errors** with the library's exception classes
-5. **Use `Q` for complex queries** instead of multiple sequential searches
+5. **Use `Q` static methods for complex queries** — combine with `&`, `|`, `~` operators
 6. **Use `StorageSQLite` for backups** — sync is incremental and efficient
-7. **When reading the current API**, check the source at https://github.com/linux-profile/email-profile for the latest signatures — the library is in active development (beta)
+7. **Flag operations go on the mailbox**, not the message — e.g., `app.inbox.mark_seen(msg)`
+8. **Reply/forward go on the Email object** — e.g., `app.reply(msg, body="...")`
+9. **`.where()` returns a lazy `Where` object** — call `.list()`, `.messages()`, `.first()`, `.count()` to get results
+10. **When reading the current API**, check the source at https://github.com/linux-profile/email-profile for the latest signatures — the library is in active development (beta)
 
 ---
 
@@ -417,25 +497,27 @@ Supported `.env` variables:
 
 ```python
 with Email.from_env() as app:
-    unread = app.inbox.unread()
-    for msg in unread:
+    for msg in app.unread().messages():
         print(f"From: {msg.from_} | Subject: {msg.subject}")
-        msg.mark_read()
+        app.inbox.mark_seen(msg)
 ```
 
 ### Backup all mailboxes
 
 ```python
-storage = StorageSQLite("full_backup.db")
-with Email.from_email("user@gmail.com", "password", storage=storage) as app:
-    app.sync()
+app = Email.from_email("user@gmail.com", "password")
+app.storage = StorageSQLite("full_backup.db")
+
+with app:
+    result = app.sync()
+    print(f"{result.inserted} new, {result.skipped} skipped")
 ```
 
 ### Search and download attachments
 
 ```python
 with Email.from_env() as app:
-    for msg in app.inbox.search("report"):
+    for msg in app.search("report").messages():
         for att in msg.attachments:
             if att.content_type == "application/pdf":
                 att.save("./reports/")
@@ -448,8 +530,7 @@ with Email.from_env() as app:
     app.send(
         to="team@company.com",
         subject="Weekly Report",
-        body="<h1>Report</h1><p>See PDF attached.</p>",
-        html=True,
+        html="<h1>Report</h1><p>See PDF attached.</p>",
         attachments=["report.pdf"]
     )
 ```
@@ -462,6 +543,6 @@ with Email.from_env() as app:
         print(mailbox)
 
     # Move spam to trash
-    for msg in app.spam.all():
-        msg.move("Trash")
+    for msg in app.spam.where().messages():
+        app.spam.move(msg, "Trash")
 ```
