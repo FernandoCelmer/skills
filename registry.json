@@ -27,6 +27,13 @@
       "description": "Enforce branch naming (feature/ISSUE-NUMBER from develop) and commit message conventions (icon + type + issue reference) for every implementation",
       "category": "development",
       "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/git-flow/SKILL.md"
+    },
+    {
+      "name": "email-profile",
+      "version": "1.0.0",
+      "description": "Generate Python code using the email-profile library for email automation (IMAP/SMTP): send, read, search, sync, backup, attachments and more",
+      "category": "development",
+      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/email-profile/SKILL.md"
     }
   ],
   "plugins": []
