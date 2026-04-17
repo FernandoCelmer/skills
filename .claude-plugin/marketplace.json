@@ -50,6 +50,17 @@
       "source": "./skills/git-flow",
       "category": "development",
       "strict": false
+    },
+    {
+      "name": "email-profile",
+      "description": "Generate Python code using the email-profile library for email automation (IMAP/SMTP): send, read, search, sync, backup, attachments and more",
+      "version": "1.0.0",
+      "author": {
+        "name": "Fernando Celmer"
+      },
+      "source": "./skills/email-profile",
+      "category": "development",
+      "strict": false
     }
   ]
 }
