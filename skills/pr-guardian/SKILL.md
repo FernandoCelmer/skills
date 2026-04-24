@@ -1,10 +1,10 @@
 ---
 allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr edit:*), Bash(gh api:*), Bash(gh repo clone:*), Bash(gh label create:*), Bash(gh label list:*), Bash(git log:*), Bash(git diff:*), Bash(git blame:*), Bash(git status:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git checkout:*), Bash(git ls-files:*), Bash(python3:*), Bash(jq:*), Read, Glob, Grep, Agent, Write, Edit, CronCreate, CronDelete
-description: Use this skill when the user asks to "babysit PRs", "monitor PRs", "watch PRs", "vigiar PRs", "ficar de olho nos PRs", "validar e corrigir PRs", or wants continuous PR monitoring with auto-review, auto-fix of review comments, and label management across one or more repositories.
+description: Use this skill when the user asks to "guard PRs", "monitor PRs", "watch PRs", "vigiar PRs", "ficar de olho nos PRs", "validar e corrigir PRs", or wants continuous PR monitoring with auto-review, auto-fix of review comments, and label management across one or more repositories.
 version: 1.0.0
 ---
 
-# Babysit PRs
+# PR Guardian
 
 Continuously monitor open PRs across multiple repositories. For each new PR: review code, post inline comments, fix blocking issues, apply labels, and keep watching for new PRs on a recurring interval.
 
