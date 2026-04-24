@@ -16,7 +16,7 @@ Make a todo list and track progress through all steps.
 
 Parse user input to extract:
 
-1. **Repositories**: GitHub org/repo URLs or names (e.g. `owline-io/owline-api`, `https://github.com/org/repo`)
+1. **Repositories**: GitHub org/repo URLs or names (e.g. `acme-corp/backend`, `https://github.com/org/repo`)
 2. **Interval**: How often to check (default: `1m`). Accept formats like `30s`, `1m`, `5m`, `10m`.
 3. **Scope**: Which PR states to monitor (default: `open`)
 
