@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr edit:*), Bash(gh api:*), Bash(gh repo clone:*), Bash(gh label create:*), Bash(gh label list:*), Bash(git log:*), Bash(git diff:*), Bash(git blame:*), Bash(git status:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git checkout:*), Bash(git ls-files:*), Bash(python3:*), Bash(jq:*), Read, Glob, Grep, Agent, Write, Edit, CronCreate, CronDelete
 description: Use this skill when the user asks to "guard PRs", "monitor PRs", "watch PRs", "vigiar PRs", "ficar de olho nos PRs", "validar e corrigir PRs", or wants continuous PR monitoring with auto-review, auto-fix of review comments, and label management across one or more repositories.
-version: 2.0.0
+version: 3.0.0
 ---
 
 # PR Guardian
@@ -246,7 +246,35 @@ If any remain unresolved, either fix them or explain why they cannot be fixed.
 
 ---
 
-## Step 7 — Report results
+## Step 7 — Merge ready PRs (MANDATORY)
+
+**After reviewing, fixing, and resolving threads, ALWAYS merge PRs that are ready.** A PR is ready when:
+- It has the `reviewed` label
+- It has ZERO unresolved review threads
+- It is not a draft
+
+Merge sequentially (oldest first to minimize conflicts):
+
+```bash
+gh pr merge <number> --repo <owner/repo> --merge --delete-branch
+```
+
+If a merge fails due to conflicts:
+1. Clone the branch
+2. Fetch and merge origin/main
+3. Resolve conflicts — read files carefully, keep both changes
+4. Commit: `<emoji> Resolve merge conflicts with main (#<issue>)`
+5. Push and retry merge
+
+After merging, close the corresponding GitHub issue if the PR body references it:
+
+```bash
+gh issue close <number> --repo <owner/repo> --reason completed --comment "Resolved by PR #XX"
+```
+
+---
+
+## Step 8 — Report results
 
 After each cycle, output a summary:
 
@@ -257,18 +285,19 @@ After each cycle, output a summary:
 **New PRs reviewed**: N
 **Blockers fixed**: N
 **Threads resolved**: N
-**Pending comments**: N
+**PRs merged**: N
+**Issues closed**: N
 
-| Repo | PR | Title | Verdict | Issues | Fixed |
-|------|----|-------|---------|--------|-------|
-| repo | #N | title | LGTM / N blockers | details | Y/N |
+| Repo | PR | Title | Verdict | Issues | Fixed | Merged |
+|------|----|-------|---------|--------|-------|--------|
+| repo | #N | title | LGTM / N blockers | details | Y/N | Y/N |
 
 **Next check**: in Xm
 ```
 
 ---
 
-## Step 8 — Start monitoring loop
+## Step 9 — Start monitoring loop
 
 Set up recurring check using CronCreate:
 
@@ -316,12 +345,14 @@ Report the job ID so the user can cancel with `CronDelete <id>`.
 - **ALWAYS fix [Blocking] comments** — clone branch, apply fix, commit, push
 - **ALWAYS resolve GitHub review threads** after fixing via GraphQL API
 - **ALWAYS verify** zero unresolved threads remain before reporting
+- **ALWAYS merge ready PRs** — reviewed + zero unresolved threads = merge
+- **ALWAYS close issues** referenced by merged PRs
+- **ALWAYS resolve merge conflicts** — clone, merge main, fix, push, retry
 - Never leave a cycle with unresolved blocking comments
 - Suggestions with < 5 line fixes should also be fixed automatically
 
 ### Safety
 - Never force-push or amend commits
-- Never merge PRs (only review and fix)
 - Never skip git hooks
 - Stage specific files, never `git add .`
 - Never commit secrets or credentials
