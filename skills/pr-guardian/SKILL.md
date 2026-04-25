@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr edit:*), Bash(gh api:*), Bash(gh repo clone:*), Bash(gh label create:*), Bash(gh label list:*), Bash(git log:*), Bash(git diff:*), Bash(git blame:*), Bash(git status:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git checkout:*), Bash(git ls-files:*), Bash(python3:*), Bash(jq:*), Read, Glob, Grep, Agent, Write, Edit, CronCreate, CronDelete
 description: Use this skill when the user asks to "guard PRs", "monitor PRs", "watch PRs", "vigiar PRs", "ficar de olho nos PRs", "validar e corrigir PRs", or wants continuous PR monitoring with auto-review, auto-fix of review comments, and label management across one or more repositories.
-version: 1.0.0
+version: 2.0.0
 ---
 
 # PR Guardian
@@ -188,9 +188,9 @@ Report unresolved comments with their severity.
 
 ---
 
-## Step 5 — Fix blocking comments (if requested)
+## Step 5 — Fix blocking comments (MANDATORY)
 
-When the user asks to fix/correct review comments:
+**This step is NOT optional.** After reviewing PRs, ALWAYS fix all `[Blocking]` comments automatically. Do NOT wait for the user to ask.
 
 For each PR with unresolved `[Blocking]` comments:
 
@@ -215,15 +215,38 @@ For each PR with unresolved `[Blocking]` comments:
 
 6. Push to the PR branch
 
+7. **Resolve the review thread** using the GitHub GraphQL API:
+   ```bash
+   # Get thread ID
+   gh api graphql -f query='query { repository(owner:"<owner>",name:"<repo>") { pullRequest(number:<N>) { reviewThreads(first:20) { nodes { id isResolved comments(first:1) { nodes { body } } } } } } }' --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved==false) | .id'
+
+   # Resolve each thread
+   gh api graphql -f query='mutation { resolveReviewThread(input:{threadId:"<THREAD_ID>"}) { thread { isResolved } } }'
+   ```
+
 Rules for fixing:
-- Only fix `[Blocking]` comments unless explicitly asked otherwise
+- **ALWAYS fix `[Blocking]` comments** — this is mandatory, not optional
+- Also fix `[Suggestion]` comments when the fix is straightforward (< 5 lines)
 - Never change code beyond what the comment requests
 - Preserve existing code style and conventions
 - If the fix requires architectural changes, report instead of fixing
+- **ALWAYS resolve the GitHub review thread after fixing** — never leave threads unresolved
 
 ---
 
-## Step 6 — Report results
+## Step 6 — Verify all threads resolved
+
+After fixing, verify NO unresolved threads remain:
+
+```bash
+gh api graphql -f query='query { repository(owner:"<owner>",name:"<repo>") { pullRequest(number:<N>) { reviewThreads(first:20) { nodes { isResolved } } } } }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved==false)] | length'
+```
+
+If any remain unresolved, either fix them or explain why they cannot be fixed.
+
+---
+
+## Step 7 — Report results
 
 After each cycle, output a summary:
 
@@ -232,18 +255,20 @@ After each cycle, output a summary:
 
 **Repos**: repo1, repo2, repo3
 **New PRs reviewed**: N
+**Blockers fixed**: N
+**Threads resolved**: N
 **Pending comments**: N
 
-| Repo | PR | Title | Verdict | Issues |
-|------|----|-------|---------|--------|
-| repo | #N | title | LGTM / N blockers | details |
+| Repo | PR | Title | Verdict | Issues | Fixed |
+|------|----|-------|---------|--------|-------|
+| repo | #N | title | LGTM / N blockers | details | Y/N |
 
 **Next check**: in Xm
 ```
 
 ---
 
-## Step 7 — Start monitoring loop
+## Step 8 — Start monitoring loop
 
 Set up recurring check using CronCreate:
 
@@ -286,6 +311,13 @@ Report the job ID so the user can cancel with `CronDelete <id>`.
 - Review multiple PRs in parallel using Agent tool
 - Fix multiple PRs in parallel when requested
 - Never duplicate work across agents
+
+### Mandatory post-review actions
+- **ALWAYS fix [Blocking] comments** — clone branch, apply fix, commit, push
+- **ALWAYS resolve GitHub review threads** after fixing via GraphQL API
+- **ALWAYS verify** zero unresolved threads remain before reporting
+- Never leave a cycle with unresolved blocking comments
+- Suggestions with < 5 line fixes should also be fixed automatically
 
 ### Safety
 - Never force-push or amend commits
