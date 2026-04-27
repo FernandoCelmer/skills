@@ -20,7 +20,7 @@ claude plugins marketplace add FernandoCelmer/skills
 | [review-issues](skills/review-issues/SKILL.md) | 1.0.0 | development | Analyze open issues across one or more repositories |
 | [smart-review-pr](skills/smart-review-pr/SKILL.md) | 2.0.0 | development | Comprehensive PR review covering code quality, security, architecture and design patterns |
 | [pr-guardian](skills/pr-guardian/SKILL.md) | 3.0.0 | automation | Continuous PR monitoring with auto-review, auto-fix, and label management |
-| [telegram-bridge](skills/telegram-bridge/SKILL.md) | 1.3.0 | automation | Telegram bot that bridges messages to Claude Code CLI — persistent sessions, images, streaming, full permissions |
+| [telegram-bridge](skills/telegram-bridge/SKILL.md) | 1.4.0 | automation | Telegram bot bridging to Claude Code CLI — persistent sessions, images, /back, /stop, /yes /no confirmation |
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: telegram-bridge
 description: Set up and manage a Telegram bot that bridges messages to Claude Code CLI. Use when the user asks to "connect telegram", "telegram bridge", "control claude via telegram", "setup telegram bot", or wants to send commands to Claude from Telegram.
-version: 1.3.0
+version: 1.4.0
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -122,10 +122,61 @@ logging.basicConfig(
 )
 log = logging.getLogger("telegram-bridge")
 
-user_cwd: dict[int, str] = {}
-user_model: dict[int, str] = {}
-user_session: dict[int, str] = {}
+SESSIONS_FILE = Path.home() / ".claude" / "telegram-sessions.json"
+
+
+def _load_sessions() -> dict:
+    import json as _json
+    if SESSIONS_FILE.exists():
+        try:
+            return _json.loads(SESSIONS_FILE.read_text())
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_sessions(data: dict) -> None:
+    import json as _json
+    SESSIONS_FILE.write_text(_json.dumps(data, indent=2))
+
+
+_persisted = _load_sessions()
+user_cwd: dict[int, str] = {int(k): v for k, v in _persisted.get("cwd", {}).items()}
+user_model: dict[int, str] = {int(k): v for k, v in _persisted.get("model", {}).items()}
+user_session: dict[int, str] = {int(k): v for k, v in _persisted.get("session", {}).items()}
+user_session_history: dict[int, list] = {int(k): v for k, v in _persisted.get("history", {}).items()}
 user_proc: dict[int, asyncio.subprocess.Process] = {}
+user_pending_confirm: dict[int, asyncio.Event] = {}
+user_confirm_result: dict[int, bool] = {}
+
+DESTRUCTIVE_PATTERNS = [
+    "git push", "git reset", "git rebase", "git merge",
+    "rm ", "rm -", "rmdir", "unlink",
+    "drop table", "drop database", "delete from", "truncate",
+    "deploy", "sam deploy", "eas build",
+    "gh pr merge", "gh pr close", "gh issue close",
+    "launchctl unload", "kill", "pkill",
+]
+
+
+def is_destructive(tool: str, inp: dict) -> str | None:
+    if tool == "Bash":
+        cmd = inp.get("command", "").lower()
+        for pattern in DESTRUCTIVE_PATTERNS:
+            if pattern in cmd:
+                return inp.get("command", "")[:300]
+    if tool == "Write":
+        return inp.get("file_path", "")
+    return None
+
+
+def _persist():
+    _save_sessions({
+        "cwd": {str(k): v for k, v in user_cwd.items()},
+        "model": {str(k): v for k, v in user_model.items()},
+        "session": {str(k): v for k, v in user_session.items()},
+        "history": {str(k): v for k, v in user_session_history.items()},
+    })
 
 
 def is_authorized(user_id: int) -> bool:
@@ -152,7 +203,7 @@ def split_message(text: str) -> list[str]:
     return chunks or [""]
 
 
-async def run_claude(prompt: str, cwd: str, model: str | None = None, session_id: str | None = None, send_fn=None, uid: int | None = None) -> tuple[str, str | None]:
+async def run_claude(prompt: str, cwd: str, model: str | None = None, session_id: str | None = None, send_fn=None, uid: int | None = None, confirm_fn=None) -> tuple[str, str | None]:
     import json as _json
 
     cmd = [
@@ -161,14 +212,7 @@ async def run_claude(prompt: str, cwd: str, model: str | None = None, session_id
         "--output-format", "stream-json", "--verbose",
         "--add-dir", str(Path.home()),
         "--append-system-prompt",
-        "IMPORTANT: You are running via Telegram. The user cannot interact with prompts. "
-        "Before ANY destructive or irreversible action (git push, file delete, deploy, "
-        "database changes, PR merge, sending messages to external services), you MUST: "
-        "1) Describe what you plan to do. "
-        "2) Stop and wait for the user's next message confirming 'ok', 'sim', 'go', 'yes'. "
-        "3) Only then execute. "
-        "For read-only actions (git status, file reads, searches) execute immediately. "
-        "Keep responses short — this is a mobile screen.",
+        "You are running via Telegram on a mobile screen. Keep responses short and concise.",
     ]
     if model:
         cmd.extend(["--model", model])
@@ -230,6 +274,14 @@ async def run_claude(prompt: str, cwd: str, model: str | None = None, session_id
                                 preview = str(inp)[:150]
                             if send_fn and preview:
                                 await send_fn(f"[{tool}] {preview}")
+
+                            destructive = is_destructive(tool, inp)
+                            if destructive and confirm_fn and uid is not None:
+                                confirmed = await confirm_fn(destructive)
+                                if not confirmed:
+                                    proc.kill()
+                                    result_text = "Cancelled by user."
+                                    return
 
                 elif etype == "tool_result":
                     content = event.get("content", "")
@@ -320,7 +372,8 @@ async def cmd_cd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Not a directory: {target}")
         return
     user_cwd[update.effective_user.id] = target
-    await update.message.reply_text(f"{target}")
+    _persist()
+    await update.message.reply_text(target)
 
 
 async def cmd_pwd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -339,6 +392,7 @@ async def cmd_model(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     m = args[1].strip().lower()
     user_model[update.effective_user.id] = m
+    _persist()
     await update.message.reply_text(f"Switched to: {m}")
 
 
@@ -349,8 +403,32 @@ async def cmd_new(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     proc = user_proc.pop(uid, None)
     if proc and proc.returncode is None:
         proc.kill()
-    user_session.pop(uid, None)
+    old_sid = user_session.pop(uid, None)
+    if old_sid:
+        hist = user_session_history.setdefault(uid, [])
+        if not hist or hist[-1] != old_sid:
+            hist.append(old_sid)
+            if len(hist) > 20:
+                hist[:] = hist[-20:]
+    _persist()
     await update.message.reply_text("New session started.")
+
+
+async def cmd_back(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update.effective_user.id):
+        return
+    uid = update.effective_user.id
+    hist = user_session_history.get(uid, [])
+    if not hist:
+        await update.message.reply_text("No previous sessions.")
+        return
+    old_sid = user_session.get(uid)
+    sid = hist.pop()
+    user_session[uid] = sid
+    if old_sid and old_sid != sid:
+        hist.insert(0, old_sid)
+    _persist()
+    await update.message.reply_text(f"Resumed session {sid[:8]}...")
 
 
 async def cmd_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -436,20 +514,10 @@ async def handle_image(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text(chunk)
 
 
-async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    if not is_authorized(update.effective_user.id):
-        await update.message.reply_text("Not authorized.")
-        return
+user_running: dict[int, bool] = {}
 
-    uid = update.effective_user.id
-    prompt = update.message.text
-    if not prompt:
-        return
 
-    await ctx.bot.send_chat_action(
-        chat_id=update.effective_chat.id, action=ChatAction.TYPING
-    )
-
+async def _run_task(update: Update, uid: int, prompt: str):
     cwd = get_cwd(uid)
     model = user_model.get(uid)
     sid = user_session.get(uid)
@@ -463,16 +531,79 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             except Exception:
                 await update.message.reply_text(chunk)
 
-    response, new_sid = await run_claude(prompt, cwd, model, session_id=sid, send_fn=send_update, uid=uid)
-    if new_sid:
-        user_session[uid] = new_sid
+    async def confirm_action(description):
+        event = asyncio.Event()
+        user_pending_confirm[uid] = event
+        await update.message.reply_text(
+            f"Confirm?
 
-    if response:
-        for chunk in split_message(response):
-            try:
-                await update.message.reply_text(escape_mdv2(chunk), parse_mode=ParseMode.MARKDOWN_V2)
-            except Exception:
-                await update.message.reply_text(chunk)
+{description}
+
+/yes or /no"
+        )
+        try:
+            await asyncio.wait_for(event.wait(), timeout=120)
+            user_pending_confirm.pop(uid, None)
+            return user_confirm_result.pop(uid, False)
+        except asyncio.TimeoutError:
+            user_pending_confirm.pop(uid, None)
+            await update.message.reply_text("Timeout — cancelled.")
+            return False
+
+    try:
+        response, new_sid = await run_claude(prompt, cwd, model, session_id=sid, send_fn=send_update, uid=uid, confirm_fn=confirm_action)
+        if new_sid:
+            user_session[uid] = new_sid
+            _persist()
+
+        if response:
+            for chunk in split_message(response):
+                try:
+                    await update.message.reply_text(escape_mdv2(chunk), parse_mode=ParseMode.MARKDOWN_V2)
+                except Exception:
+                    await update.message.reply_text(chunk)
+    finally:
+        user_running.pop(uid, None)
+
+
+async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update.effective_user.id):
+        await update.message.reply_text("Not authorized.")
+        return
+
+    uid = update.effective_user.id
+    prompt = update.message.text
+    if not prompt:
+        return
+
+    if user_running.get(uid):
+        await update.message.reply_text("Already running. /stop to cancel.")
+        return
+
+    user_running[uid] = True
+    asyncio.create_task(_run_task(update, uid, prompt))
+
+
+async def cmd_yes(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    event = user_pending_confirm.get(uid)
+    if event:
+        user_confirm_result[uid] = True
+        event.set()
+        await update.message.reply_text("Confirmed.")
+    else:
+        await update.message.reply_text("Nothing pending.")
+
+
+async def cmd_no(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    event = user_pending_confirm.get(uid)
+    if event:
+        user_confirm_result[uid] = False
+        event.set()
+        await update.message.reply_text("Cancelled.")
+    else:
+        await update.message.reply_text("Nothing pending.")
 
 
 async def main():
@@ -488,7 +619,10 @@ async def main():
     app.add_handler(CommandHandler("pwd", cmd_pwd))
     app.add_handler(CommandHandler("model", cmd_model))
     app.add_handler(CommandHandler("new", cmd_new))
+    app.add_handler(CommandHandler("back", cmd_back))
     app.add_handler(CommandHandler("stop", cmd_stop))
+    app.add_handler(CommandHandler("yes", cmd_yes))
+    app.add_handler(CommandHandler("no", cmd_no))
     app.add_handler(CommandHandler("sh", cmd_sh))
     app.add_handler(MessageHandler(filters.PHOTO | filters.Document.IMAGE, handle_image))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
