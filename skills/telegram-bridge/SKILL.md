@@ -601,11 +601,15 @@ sudo xattr -rd com.apple.quarantine ~/.pyenv/versions/*/bin/python3
 
 ## Security Rules
 
-1. **ALWAYS check `TELEGRAM_ALLOWED_USERS`** — never allow unauthorized users
-2. **NEVER expose tokens** in responses or logs
-3. `/sh` commands run in a subprocess with 30s timeout — no interactive shells
-4. Claude subprocess has 5min timeout
-5. Bridge only responds to text messages — no files, photos, or voice
+1. **ALWAYS set `TELEGRAM_ALLOWED_USERS`** — whitelist of Telegram user IDs. Without it, anyone can control your machine
+2. **NEVER expose tokens** in responses, logs, or code — bot token and API keys stay in `~/.env`
+3. **`--dangerously-skip-permissions`** — the bridge bypasses all Claude safety checks. Only authorized users should have access
+4. **Destructive action confirmation** — the system prompt instructs Claude to ask before push, delete, deploy, merge, or DB changes. The user must confirm in the next message
+5. **`/sh` commands** — run in subprocess with 30s timeout, no interactive shells
+6. **Claude subprocess** — 5min timeout per message
+7. **Images** — downloaded to `~/.claude/telegram-images/`, not automatically cleaned up. Periodically delete old files
+8. **Sessions** — session IDs are stored in memory only. Restarting the bridge clears all sessions
+9. **Network exposure** — the bridge uses Telegram long-polling (outbound only), no inbound ports are opened
 
 ---
 
