@@ -1,7 +1,7 @@
 ---
 name: telegram-bridge
 description: Set up and manage a Telegram bot that bridges messages to Claude Code CLI. Use when the user asks to "connect telegram", "telegram bridge", "control claude via telegram", "setup telegram bot", or wants to send commands to Claude from Telegram.
-version: 1.1.0
+version: 1.2.0
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -79,13 +79,12 @@ Write this exact file to `~/.claude/telegram-bridge.py`:
 
 ```python
 #!/usr/bin/env python3
-"""Telegram - Claude Code bridge."""
+"""Telegram <-> Claude Code bridge."""
 
 import asyncio
 import logging
 import os
 import subprocess
-import signal
 import sys
 from pathlib import Path
 
@@ -117,9 +116,9 @@ logging.basicConfig(
 )
 log = logging.getLogger("telegram-bridge")
 
-# Per-user state
 user_cwd: dict[int, str] = {}
 user_model: dict[int, str] = {}
+user_session: dict[int, str] = {}
 
 
 def is_authorized(user_id: int) -> bool:
@@ -136,18 +135,22 @@ def split_message(text: str) -> list[str]:
         if len(text) <= MAX_MSG_LEN:
             chunks.append(text)
             break
-        cut = text[:MAX_MSG_LEN].rfind("\n")
+        cut = text[:MAX_MSG_LEN].rfind("
+")
         if cut < 100:
             cut = MAX_MSG_LEN
         chunks.append(text[:cut])
-        text = text[cut:].lstrip("\n")
+        text = text[cut:].lstrip("
+")
     return chunks or [""]
 
 
-async def run_claude(prompt: str, cwd: str, model: str | None = None) -> str:
-    cmd = ["claude", "--dangerously-skip-permissions", "-p", prompt, "--output-format", "text"]
+async def run_claude(prompt: str, cwd: str, model: str | None = None, session_id: str | None = None) -> tuple[str, str | None]:
+    cmd = ["claude", "--dangerously-skip-permissions", "-p", prompt, "--output-format", "json"]
     if model:
         cmd.extend(["--model", model])
+    if session_id:
+        cmd.extend(["--resume", session_id])
 
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -159,16 +162,24 @@ async def run_claude(prompt: str, cwd: str, model: str | None = None) -> str:
         stdout, stderr = await asyncio.wait_for(
             proc.communicate(), timeout=300
         )
-        output = stdout.decode("utf-8", errors="replace").strip()
-        if not output and stderr:
-            output = stderr.decode("utf-8", errors="replace").strip()
-        return output or "(empty response)"
+        raw = stdout.decode("utf-8", errors="replace").strip()
+        if not raw and stderr:
+            return stderr.decode("utf-8", errors="replace").strip(), session_id
+
+        import json as _json
+        try:
+            data = _json.loads(raw)
+            text = data.get("result", raw)
+            sid = data.get("session_id", session_id)
+            return text or "(empty response)", sid
+        except (_json.JSONDecodeError, TypeError):
+            return raw or "(empty response)", session_id
     except asyncio.TimeoutError:
-        return "Timeout - Claude took longer than 5 minutes."
+        return "Timeout - Claude took longer than 5 minutes.", session_id
     except FileNotFoundError:
-        return "claude CLI not found. Is it installed and in PATH?"
+        return "claude CLI not found. Is it installed and in PATH?", session_id
     except Exception as e:
-        return f"Error: {e}"
+        return f"Error: {e}", session_id
 
 
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -176,14 +187,28 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Not authorized.")
         return
     await update.message.reply_text(
-        "Claude Code bridge active.\n\n"
-        "Send any message and I'll forward it to Claude.\n\n"
-        "Commands:\n"
-        "/ping — check if bridge is alive\n"
-        "/cd <path> — change working directory\n"
-        "/pwd — show current directory\n"
-        "/model <name> — switch model (sonnet, opus, haiku)\n"
-        "/sh <cmd> — run shell command directly\n"
+        "Claude Code bridge active.
+
+"
+        "Send any message and I'll forward it to Claude.
+"
+        "Session persists between messages.
+
+"
+        "Commands:
+"
+        "/ping - status
+"
+        "/new - start new session
+"
+        "/cd <path> - change directory
+"
+        "/pwd - show directory
+"
+        "/model <name> - switch model
+"
+        "/sh <cmd> - shell command
+"
     )
 
 
@@ -192,9 +217,11 @@ async def cmd_ping(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
     cwd = get_cwd(update.effective_user.id)
     model = user_model.get(update.effective_user.id, "default")
-    await update.message.reply_text(
-        f"Pong\n{cwd}\n{model}"
-    )
+    sid = user_session.get(update.effective_user.id, "none")
+    await update.message.reply_text(f"Pong
+{cwd}
+{model}
+session: {sid[:8] if sid != 'none' else 'none'}")
 
 
 async def cmd_cd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -212,7 +239,7 @@ async def cmd_cd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Not a directory: {target}")
         return
     user_cwd[update.effective_user.id] = target
-    await update.message.reply_text(target)
+    await update.message.reply_text(f"{target}")
 
 
 async def cmd_pwd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -227,11 +254,19 @@ async def cmd_model(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     args = update.message.text.split(maxsplit=1)
     if len(args) < 2:
         current = user_model.get(update.effective_user.id, "default")
-        await update.message.reply_text(f"🧠 Current model: {current}")
+        await update.message.reply_text(f"Current model: {current}")
         return
     m = args[1].strip().lower()
     user_model[update.effective_user.id] = m
-    await update.message.reply_text(f"🧠 Switched to: {m}")
+    await update.message.reply_text(f"Switched to: {m}")
+
+
+async def cmd_new(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update.effective_user.id):
+        return
+    uid = update.effective_user.id
+    user_session.pop(uid, None)
+    await update.message.reply_text("New session started.")
 
 
 async def cmd_sh(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -249,7 +284,7 @@ async def cmd_sh(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         )
         output = result.stdout or result.stderr or "(no output)"
         for chunk in split_message(output.strip()):
-            await update.message.reply_text(f"```\n{chunk}\n```", parse_mode=ParseMode.MARKDOWN_V2)
+            await update.message.reply_text(chunk)
     except subprocess.TimeoutExpired:
         await update.message.reply_text("Command timed out (30s)")
     except Exception as e:
@@ -272,7 +307,10 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     cwd = get_cwd(uid)
     model = user_model.get(uid)
-    response = await run_claude(prompt, cwd, model)
+    sid = user_session.get(uid)
+    response, new_sid = await run_claude(prompt, cwd, model, session_id=sid)
+    if new_sid:
+        user_session[uid] = new_sid
 
     for chunk in split_message(response):
         try:
@@ -293,6 +331,7 @@ async def main():
     app.add_handler(CommandHandler("cd", cmd_cd))
     app.add_handler(CommandHandler("pwd", cmd_pwd))
     app.add_handler(CommandHandler("model", cmd_model))
+    app.add_handler(CommandHandler("new", cmd_new))
     app.add_handler(CommandHandler("sh", cmd_sh))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
@@ -315,6 +354,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 ```
 
 ---
