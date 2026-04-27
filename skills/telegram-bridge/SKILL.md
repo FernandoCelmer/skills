@@ -1,7 +1,7 @@
 ---
 name: telegram-bridge
 description: Set up and manage a Telegram bot that bridges messages to Claude Code CLI. Use when the user asks to "connect telegram", "telegram bridge", "control claude via telegram", "setup telegram bot", or wants to send commands to Claude from Telegram.
-version: 1.0.0
+version: 1.0.1
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -79,7 +79,7 @@ Write this exact file to `~/.claude/telegram-bridge.py`:
 
 ```python
 #!/usr/bin/env python3
-"""Telegram ↔ Claude Code bridge."""
+"""Telegram - Claude Code bridge."""
 
 import asyncio
 import logging
@@ -131,7 +131,6 @@ def get_cwd(user_id: int) -> str:
 
 
 def split_message(text: str) -> list[str]:
-    """Split long messages into Telegram-safe chunks."""
     chunks = []
     while text:
         if len(text) <= MAX_MSG_LEN:
@@ -146,7 +145,6 @@ def split_message(text: str) -> list[str]:
 
 
 async def run_claude(prompt: str, cwd: str, model: str | None = None) -> str:
-    """Run claude CLI as subprocess and return output."""
     cmd = ["claude", "--print", "--verbose"]
     if model:
         cmd.extend(["--model", model])
@@ -167,22 +165,19 @@ async def run_claude(prompt: str, cwd: str, model: str | None = None) -> str:
             output = stderr.decode("utf-8", errors="replace").strip()
         return output or "(empty response)"
     except asyncio.TimeoutError:
-        return "⏱ Timeout — Claude took longer than 5 minutes."
+        return "Timeout - Claude took longer than 5 minutes."
     except FileNotFoundError:
-        return "❌ `claude` CLI not found. Is it installed and in PATH?"
+        return "claude CLI not found. Is it installed and in PATH?"
     except Exception as e:
-        return f"❌ Error: {e}"
-
-
-# ── Handlers ────────────────────────────────────────────────
+        return f"Error: {e}"
 
 
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update.effective_user.id):
-        await update.message.reply_text("⛔ Not authorized.")
+        await update.message.reply_text("Not authorized.")
         return
     await update.message.reply_text(
-        "🤖 Claude Code bridge active.\n\n"
+        "Claude Code bridge active.\n\n"
         "Send any message and I'll forward it to Claude.\n\n"
         "Commands:\n"
         "/ping — check if bridge is alive\n"
@@ -199,7 +194,7 @@ async def cmd_ping(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     cwd = get_cwd(update.effective_user.id)
     model = user_model.get(update.effective_user.id, "default")
     await update.message.reply_text(
-        f"🏓 Pong\n📁 {cwd}\n🧠 {model}"
+        f"Pong\n{cwd}\n{model}"
     )
 
 
@@ -215,16 +210,16 @@ async def cmd_cd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         target = os.path.join(get_cwd(update.effective_user.id), target)
     target = os.path.realpath(target)
     if not os.path.isdir(target):
-        await update.message.reply_text(f"❌ Not a directory: {target}")
+        await update.message.reply_text(f"Not a directory: {target}")
         return
     user_cwd[update.effective_user.id] = target
-    await update.message.reply_text(f"📁 {target}")
+    await update.message.reply_text(target)
 
 
 async def cmd_pwd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update.effective_user.id):
         return
-    await update.message.reply_text(f"📁 {get_cwd(update.effective_user.id)}")
+    await update.message.reply_text(get_cwd(update.effective_user.id))
 
 
 async def cmd_model(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -257,14 +252,14 @@ async def cmd_sh(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         for chunk in split_message(output.strip()):
             await update.message.reply_text(f"```\n{chunk}\n```", parse_mode=ParseMode.MARKDOWN_V2)
     except subprocess.TimeoutExpired:
-        await update.message.reply_text("⏱ Command timed out (30s)")
+        await update.message.reply_text("Command timed out (30s)")
     except Exception as e:
-        await update.message.reply_text(f"❌ {e}")
+        await update.message.reply_text(f"Error: {e}")
 
 
 async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update.effective_user.id):
-        await update.message.reply_text("⛔ Not authorized.")
+        await update.message.reply_text("Not authorized.")
         return
 
     uid = update.effective_user.id
@@ -287,10 +282,7 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(chunk)
 
 
-# ── Main ────────────────────────────────────────────────────
-
-
-def main():
+async def main():
     if not TOKEN:
         log.error("TELEGRAM_BOT_TOKEN not set in ~/.env")
         sys.exit(1)
@@ -306,11 +298,24 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     log.info("Bridge started. Allowed users: %s", ALLOWED or "ALL")
-    app.run_polling(drop_pending_updates=True)
+
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling(drop_pending_updates=True)
+
+    try:
+        while True:
+            await asyncio.sleep(3600)
+    except (KeyboardInterrupt, SystemExit):
+        pass
+    finally:
+        await app.updater.stop()
+        await app.stop()
+        await app.shutdown()
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
 ```
 
 ---

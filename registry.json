@@ -37,7 +37,7 @@
     },
     {
       "name": "telegram-bridge",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "Set up and manage a Telegram bot that bridges messages to Claude Code CLI — control Claude from Telegram",
       "category": "automation",
       "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/telegram-bridge/SKILL.md"
