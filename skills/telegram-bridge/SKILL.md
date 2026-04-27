@@ -1,7 +1,7 @@
 ---
 name: telegram-bridge
 description: Set up and manage a Telegram bot that bridges messages to Claude Code CLI. Use when the user asks to "connect telegram", "telegram bridge", "control claude via telegram", "setup telegram bot", or wants to send commands to Claude from Telegram.
-version: 1.2.1
+version: 1.3.0
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -101,6 +101,12 @@ from telegram.constants import ParseMode, ChatAction
 
 load_dotenv(Path.home() / ".env")
 
+ESCAPE_CHARS = r'_*[]()~`>#+-=|{}.!'
+
+
+def escape_mdv2(text: str) -> str:
+    return ''.join(f'\{c}' if c in ESCAPE_CHARS else c for c in text)
+
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 ALLOWED = {
     int(uid.strip())
@@ -119,6 +125,7 @@ log = logging.getLogger("telegram-bridge")
 user_cwd: dict[int, str] = {}
 user_model: dict[int, str] = {}
 user_session: dict[int, str] = {}
+user_proc: dict[int, asyncio.subprocess.Process] = {}
 
 
 def is_authorized(user_id: int) -> bool:
@@ -145,12 +152,31 @@ def split_message(text: str) -> list[str]:
     return chunks or [""]
 
 
-async def run_claude(prompt: str, cwd: str, model: str | None = None, session_id: str | None = None) -> tuple[str, str | None]:
-    cmd = ["claude", "--dangerously-skip-permissions", "-p", prompt, "--output-format", "json"]
+async def run_claude(prompt: str, cwd: str, model: str | None = None, session_id: str | None = None, send_fn=None, uid: int | None = None) -> tuple[str, str | None]:
+    import json as _json
+
+    cmd = [
+        "claude", "--dangerously-skip-permissions",
+        "-p", prompt,
+        "--output-format", "stream-json", "--verbose",
+        "--add-dir", str(Path.home()),
+        "--append-system-prompt",
+        "IMPORTANT: You are running via Telegram. The user cannot interact with prompts. "
+        "Before ANY destructive or irreversible action (git push, file delete, deploy, "
+        "database changes, PR merge, sending messages to external services), you MUST: "
+        "1) Describe what you plan to do. "
+        "2) Stop and wait for the user's next message confirming 'ok', 'sim', 'go', 'yes'. "
+        "3) Only then execute. "
+        "For read-only actions (git status, file reads, searches) execute immediately. "
+        "Keep responses short — this is a mobile screen.",
+    ]
     if model:
         cmd.extend(["--model", model])
     if session_id:
         cmd.extend(["--resume", session_id])
+
+    sid = session_id
+    result_text = ""
 
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -159,27 +185,80 @@ async def run_claude(prompt: str, cwd: str, model: str | None = None, session_id
             stderr=asyncio.subprocess.PIPE,
             cwd=cwd,
         )
-        stdout, stderr = await asyncio.wait_for(
-            proc.communicate(), timeout=300
-        )
-        raw = stdout.decode("utf-8", errors="replace").strip()
-        if not raw and stderr:
-            return stderr.decode("utf-8", errors="replace").strip(), session_id
+        if uid is not None:
+            user_proc[uid] = proc
 
-        import json as _json
-        try:
-            data = _json.loads(raw)
-            text = data.get("result", raw)
-            sid = data.get("session_id", session_id)
-            return text or "(empty response)", sid
-        except (_json.JSONDecodeError, TypeError):
-            return raw or "(empty response)", session_id
+        async def read_stream():
+            nonlocal sid, result_text
+            while True:
+                line = await asyncio.wait_for(proc.stdout.readline(), timeout=300)
+                if not line:
+                    break
+                raw = line.decode("utf-8", errors="replace").strip()
+                if not raw:
+                    continue
+                try:
+                    event = _json.loads(raw)
+                except _json.JSONDecodeError:
+                    continue
+
+                etype = event.get("type", "")
+
+                if etype == "system" and event.get("subtype") == "init":
+                    sid = event.get("session_id", sid)
+
+                elif etype == "assistant":
+                    msg = event.get("message", {})
+                    for block in msg.get("content", []):
+                        if block.get("type") == "tool_use":
+                            tool = block.get("name", "?")
+                            inp = block.get("input", {})
+                            preview = ""
+                            if tool == "Bash":
+                                preview = inp.get("command", "")[:200]
+                            elif tool == "Read":
+                                preview = inp.get("file_path", "")
+                            elif tool == "Edit":
+                                preview = inp.get("file_path", "")
+                            elif tool == "Write":
+                                preview = inp.get("file_path", "")
+                            elif tool == "Grep":
+                                preview = inp.get("pattern", "")
+                            elif tool == "Glob":
+                                preview = inp.get("pattern", "")
+                            else:
+                                preview = str(inp)[:150]
+                            if send_fn and preview:
+                                await send_fn(f"[{tool}] {preview}")
+
+                elif etype == "tool_result":
+                    content = event.get("content", "")
+                    if isinstance(content, list):
+                        content = "
+".join(
+                            b.get("text", "") for b in content if b.get("type") == "text"
+                        )
+                    if send_fn and content:
+                        truncated = content[:1500]
+                        if len(content) > 1500:
+                            truncated += f"
+... ({len(content)} chars)"
+                        await send_fn(truncated)
+
+                elif etype == "result":
+                    sid = event.get("session_id", sid)
+                    result_text = event.get("result", "")
+
+        await read_stream()
+        await proc.wait()
+        return result_text or "(empty response)", sid
+
     except asyncio.TimeoutError:
-        return "Timeout - Claude took longer than 5 minutes.", session_id
+        return "Timeout - Claude took longer than 5 minutes.", sid
     except FileNotFoundError:
-        return "claude CLI not found. Is it installed and in PATH?", session_id
+        return "claude CLI not found. Is it installed and in PATH?", sid
     except Exception as e:
-        return f"Error: {e}", session_id
+        return f"Error: {e}", sid
 
 
 async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -198,6 +277,8 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         "Commands:
 "
         "/ping - status
+"
+        "/stop - kill running task
 "
         "/new - start new session
 "
@@ -265,8 +346,23 @@ async def cmd_new(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update.effective_user.id):
         return
     uid = update.effective_user.id
+    proc = user_proc.pop(uid, None)
+    if proc and proc.returncode is None:
+        proc.kill()
     user_session.pop(uid, None)
     await update.message.reply_text("New session started.")
+
+
+async def cmd_stop(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update.effective_user.id):
+        return
+    uid = update.effective_user.id
+    proc = user_proc.get(uid)
+    if proc and proc.returncode is None:
+        proc.kill()
+        await update.message.reply_text("Stopped.")
+    else:
+        await update.message.reply_text("Nothing running.")
 
 
 async def cmd_sh(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -291,6 +387,55 @@ async def cmd_sh(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Error: {e}")
 
 
+async def handle_image(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update.effective_user.id):
+        await update.message.reply_text("Not authorized.")
+        return
+
+    uid = update.effective_user.id
+    caption = update.message.caption or "Analyze this image."
+
+    if update.message.photo:
+        file = await ctx.bot.get_file(update.message.photo[-1].file_id)
+    elif update.message.document:
+        file = await ctx.bot.get_file(update.message.document.file_id)
+    else:
+        return
+
+    img_dir = Path.home() / ".claude" / "telegram-images"
+    img_dir.mkdir(exist_ok=True)
+    ext = Path(file.file_path).suffix or ".jpg"
+    local_path = img_dir / f"{uid}_{file.file_unique_id}{ext}"
+    await file.download_to_drive(str(local_path))
+
+    await ctx.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+
+    prompt = f"I'm sending you an image at {local_path}. Read it with the Read tool. {caption}"
+    cwd = get_cwd(uid)
+    model = user_model.get(uid)
+    sid = user_session.get(uid)
+
+    async def send_update(text):
+        for chunk in split_message(text):
+            try:
+                await update.message.reply_text(f"```
+{chunk}
+```", parse_mode=ParseMode.MARKDOWN_V2)
+            except Exception:
+                await update.message.reply_text(chunk)
+
+    response, new_sid = await run_claude(prompt, cwd, model, session_id=sid, send_fn=send_update, uid=uid)
+    if new_sid:
+        user_session[uid] = new_sid
+
+    if response:
+        for chunk in split_message(response):
+            try:
+                await update.message.reply_text(escape_mdv2(chunk), parse_mode=ParseMode.MARKDOWN_V2)
+            except Exception:
+                await update.message.reply_text(chunk)
+
+
 async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update.effective_user.id):
         await update.message.reply_text("Not authorized.")
@@ -308,15 +453,26 @@ async def handle_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     cwd = get_cwd(uid)
     model = user_model.get(uid)
     sid = user_session.get(uid)
-    response, new_sid = await run_claude(prompt, cwd, model, session_id=sid)
+
+    async def send_update(text):
+        for chunk in split_message(text):
+            try:
+                await update.message.reply_text(f"```
+{chunk}
+```", parse_mode=ParseMode.MARKDOWN_V2)
+            except Exception:
+                await update.message.reply_text(chunk)
+
+    response, new_sid = await run_claude(prompt, cwd, model, session_id=sid, send_fn=send_update, uid=uid)
     if new_sid:
         user_session[uid] = new_sid
 
-    for chunk in split_message(response):
-        try:
-            await update.message.reply_text(chunk, parse_mode=ParseMode.MARKDOWN)
-        except Exception:
-            await update.message.reply_text(chunk)
+    if response:
+        for chunk in split_message(response):
+            try:
+                await update.message.reply_text(escape_mdv2(chunk), parse_mode=ParseMode.MARKDOWN_V2)
+            except Exception:
+                await update.message.reply_text(chunk)
 
 
 async def main():
@@ -332,14 +488,16 @@ async def main():
     app.add_handler(CommandHandler("pwd", cmd_pwd))
     app.add_handler(CommandHandler("model", cmd_model))
     app.add_handler(CommandHandler("new", cmd_new))
+    app.add_handler(CommandHandler("stop", cmd_stop))
     app.add_handler(CommandHandler("sh", cmd_sh))
+    app.add_handler(MessageHandler(filters.PHOTO | filters.Document.IMAGE, handle_image))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     log.info("Bridge started. Allowed users: %s", ALLOWED or "ALL")
 
     await app.initialize()
     await app.start()
-    await app.updater.start_polling(drop_pending_updates=True)
+    await app.updater.start_polling(drop_pending_updates=True, poll_interval=1.0)
 
     try:
         while True:
