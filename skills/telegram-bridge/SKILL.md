@@ -1,7 +1,7 @@
 ---
 name: telegram-bridge
 description: Set up and manage a Telegram bot that bridges messages to Claude Code CLI. Use when the user asks to "connect telegram", "telegram bridge", "control claude via telegram", "setup telegram bot", or wants to send commands to Claude from Telegram.
-version: 1.2.0
+version: 1.2.1
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -424,6 +424,23 @@ tail -f ~/.claude/telegram-bridge.log
 
 ---
 
+## Troubleshooting
+
+### macOS Gatekeeper network prompt
+
+macOS may show a "allow network connections" dialog for Python every time the bridge restarts. Fix permanently:
+
+```bash
+sudo xattr -rd com.apple.quarantine $(which python3)
+```
+
+For pyenv:
+```bash
+sudo xattr -rd com.apple.quarantine ~/.pyenv/versions/*/bin/python3
+```
+
+---
+
 ## Security Rules
 
 1. **ALWAYS check `TELEGRAM_ALLOWED_USERS`** — never allow unauthorized users
@@ -443,5 +460,6 @@ tail -f ~/.claude/telegram-bridge.log
 | `/cd <path>` | Change Claude's working directory |
 | `/pwd` | Show current working directory |
 | `/model <name>` | Switch Claude model (sonnet, opus, haiku) |
+| `/new` | Start a new session (reset context) |
 | `/sh <cmd>` | Run shell command directly (30s timeout) |
-| Any text | Forward to Claude Code and return response |
+| Any text | Forward to Claude Code (session persists) |
