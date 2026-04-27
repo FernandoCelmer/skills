@@ -14,11 +14,12 @@ claude plugins marketplace add FernandoCelmer/skills
 
 | Name | Version | Category | Description |
 |---|---|---|---|
-| [email-profile](skills/email-profile/SKILL.md) | 1.0.0 | development | Generate Python code using the email-profile library for email automation (IMAP/SMTP) |
+| [email-profile](skills/email-profile/SKILL.md) | 1.1.0 | development | Generate Python code using the email-profile library for email automation (IMAP/SMTP) |
 | [git-flow](skills/git-flow/SKILL.md) | 1.3.0 | development | Enforce branch naming, structured commits per file, language-specific commit types (Python/JS/Rust/Go), and git-flow conventions |
 | [repo-audit](skills/repo-audit/SKILL.md) | 1.0.0 | development | Deep technical audit of a repository: find bugs, gaps, missing tests and security issues, then create GitHub issues for findings |
 | [review-issues](skills/review-issues/SKILL.md) | 1.0.0 | development | Analyze open issues across one or more repositories |
 | [smart-review-pr](skills/smart-review-pr/SKILL.md) | 2.0.0 | development | Comprehensive PR review covering code quality, security, architecture and design patterns |
+| [pr-guardian](skills/pr-guardian/SKILL.md) | 3.0.0 | automation | Continuous PR monitoring with auto-review, auto-fix, and label management |
 | [telegram-bridge](skills/telegram-bridge/SKILL.md) | 1.3.0 | automation | Telegram bot that bridges messages to Claude Code CLI — persistent sessions, images, streaming, full permissions |
 
 ---
