@@ -1,7 +1,7 @@
 ---
 name: telegram-bridge
 description: Set up and manage a Telegram bot that bridges messages to Claude Code CLI. Use when the user asks to "connect telegram", "telegram bridge", "control claude via telegram", "setup telegram bot", or wants to send commands to Claude from Telegram.
-version: 1.0.1
+version: 1.1.0
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -145,10 +145,9 @@ def split_message(text: str) -> list[str]:
 
 
 async def run_claude(prompt: str, cwd: str, model: str | None = None) -> str:
-    cmd = ["claude", "--print", "--verbose"]
+    cmd = ["claude", "--dangerously-skip-permissions", "-p", prompt, "--output-format", "text"]
     if model:
         cmd.extend(["--model", model])
-    cmd.extend([prompt])
 
     try:
         proc = await asyncio.create_subprocess_exec(
