@@ -38,6 +38,19 @@ claude plugins install git-flow@FernandoCelmer-skills
 
 ---
 
+## Security
+
+Skills execute with the permissions you grant them via `allowed-tools`. Before installing:
+
+- **Review the SKILL.md** — check what tools it requests and why
+- **Minimal permissions** — skills should only request tools they need
+- **No secrets in skills** — tokens and credentials go in `~/.env`, never in SKILL.md
+- **`--dangerously-skip-permissions`** — some skills (like telegram-bridge) use this flag. Understand that it bypasses all safety checks
+- **`TELEGRAM_ALLOWED_USERS`** — always set a whitelist for remote-access skills
+- **Report vulnerabilities** — open an issue or email email@fernandocelmer.com
+
+---
+
 ## How to contribute
 
 1. Fork this repository
