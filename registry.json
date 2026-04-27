@@ -34,6 +34,13 @@
       "description": "Generate Python code using the email-profile library for email automation (IMAP/SMTP): send, read, search, sync, backup, attachments and more",
       "category": "development",
       "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/email-profile/SKILL.md"
+    },
+    {
+      "name": "telegram-bridge",
+      "version": "1.0.0",
+      "description": "Set up and manage a Telegram bot that bridges messages to Claude Code CLI — control Claude from Telegram",
+      "category": "automation",
+      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/telegram-bridge/SKILL.md"
     }
   ],
   "plugins": []

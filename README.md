@@ -19,6 +19,7 @@ claude plugins marketplace add FernandoCelmer/skills
 | [repo-audit](skills/repo-audit/SKILL.md) | 1.0.0 | development | Deep technical audit of a repository: find bugs, gaps, missing tests and security issues, then create GitHub issues for findings |
 | [review-issues](skills/review-issues/SKILL.md) | 1.0.0 | development | Analyze open issues across one or more repositories |
 | [smart-review-pr](skills/smart-review-pr/SKILL.md) | 2.0.0 | development | Comprehensive PR review covering code quality, security, architecture and design patterns |
+| [telegram-bridge](skills/telegram-bridge/SKILL.md) | 1.0.0 | automation | Telegram bot that bridges messages to Claude Code CLI — control Claude from Telegram |
 
 ---
 
