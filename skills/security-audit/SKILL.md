@@ -328,7 +328,6 @@ For each finding:
 
 **Repository:** owner/repo
 **Date:** YYYY-MM-DD
-**Auditor:** Claude Code (security-audit skill)
 
 ## Executive Summary
 
