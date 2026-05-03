@@ -48,6 +48,13 @@
       "description": "Telegram bot bridging to Claude Code CLI — persistent sessions, images, /back, /stop, /yes /no confirmation, full permissions",
       "category": "automation",
       "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/telegram-bridge/SKILL.md"
+    },
+    {
+      "name": "security-audit",
+      "version": "1.0.0",
+      "description": "Comprehensive security audit of repositories — OWASP Top 10, CWE Top 25, secrets detection, injection vectors, auth/authz flaws, dependency CVEs, infrastructure misconfigurations",
+      "category": "security",
+      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/security-audit/SKILL.md"
     }
   ],
   "plugins": []

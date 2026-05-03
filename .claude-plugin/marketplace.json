@@ -83,6 +83,17 @@
       "source": "./skills/telegram-bridge",
       "category": "automation",
       "strict": false
+    },
+    {
+      "name": "security-audit",
+      "description": "Comprehensive security audit of repositories — OWASP Top 10, CWE Top 25, secrets detection, injection vectors, auth/authz flaws, dependency CVEs, infrastructure misconfigurations",
+      "version": "1.0.0",
+      "author": {
+        "name": "Fernando Celmer"
+      },
+      "source": "./skills/security-audit",
+      "category": "security",
+      "strict": false
     }
   ]
 }
