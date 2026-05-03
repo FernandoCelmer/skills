@@ -1,6 +1,6 @@
 # Skills Marketplace
 
-A marketplace of Claude Code skills. Install the marketplace once, then install any skill directly from Claude Code.
+Collection of installable skills for [Claude Code](https://github.com/anthropics/claude-code). Automate code reviews, security audits, git workflows, and more — directly from your terminal.
 
 ## Getting Started
 
@@ -20,6 +20,7 @@ claude plugins marketplace add FernandoCelmer/skills
 | [review-issues](skills/review-issues/SKILL.md) | 1.0.0 | development | Analyze open issues across one or more repositories |
 | [smart-review-pr](skills/smart-review-pr/SKILL.md) | 2.0.0 | development | Comprehensive PR review covering code quality, security, architecture and design patterns |
 | [pr-guardian](skills/pr-guardian/SKILL.md) | 3.0.0 | automation | Continuous PR monitoring with auto-review, auto-fix, and label management |
+| [security-audit](skills/security-audit/SKILL.md) | 1.0.0 | security | Comprehensive security audit of repositories — OWASP Top 10, CWE Top 25, secrets detection, injection vectors, auth/authz flaws, dependency CVEs, infrastructure misconfigurations |
 | [telegram-bridge](skills/telegram-bridge/SKILL.md) | 1.4.0 | automation | Telegram bot bridging to Claude Code CLI — persistent sessions, images, /back, /stop, /yes /no confirmation |
 
 ---
