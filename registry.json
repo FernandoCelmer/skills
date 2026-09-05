@@ -55,6 +55,13 @@
       "description": "Comprehensive security audit of repositories — OWASP Top 10, CWE Top 25, secrets detection, injection vectors, auth/authz flaws, dependency CVEs, infrastructure misconfigurations",
       "category": "security",
       "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/security-audit/SKILL.md"
+    },
+    {
+      "name": "python-unittest",
+      "version": "1.0.0",
+      "description": "Generate Python unit tests using unittest.TestCase classes — mocks via unittest.mock, AAA pattern, async support, no pytest or third-party libs",
+      "category": "development",
+      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/python-unittest/SKILL.md"
     }
   ],
   "plugins": []

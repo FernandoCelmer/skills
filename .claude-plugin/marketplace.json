@@ -94,6 +94,17 @@
       "source": "./skills/security-audit",
       "category": "security",
       "strict": false
+    },
+    {
+      "name": "python-unittest",
+      "description": "Generate Python unit tests using unittest.TestCase classes — mocks via unittest.mock, AAA pattern, async support, no pytest or third-party libs",
+      "version": "1.0.0",
+      "author": {
+        "name": "Fernando Celmer"
+      },
+      "source": "./skills/python-unittest",
+      "category": "development",
+      "strict": false
     }
   ]
 }
