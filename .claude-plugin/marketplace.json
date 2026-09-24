@@ -42,8 +42,8 @@
     },
     {
       "name": "git-flow",
-      "description": "Enforce branch naming (feature/ISSUE-NUMBER from develop) and commit message conventions (icon + type + issue reference) for every implementation",
-      "version": "1.3.0",
+      "description": "Enforce branch naming (feature/ISSUE-NUMBER from develop) and Conventional Commits 1.0.0 (type(scope): description, issue in the footer) for every implementation",
+      "version": "2.0.0",
       "author": {
         "name": "Fernando Celmer"
       },
