@@ -1,7 +1,7 @@
 ---
 name: git-flow
-description: Enforce branch naming and commit message conventions. Use when the user asks to implement something from an issue, create a branch, or commit changes. Branches follow the pattern feature/ISSUE-NUMBER from develop. Commits follow the icon+type+issue pattern.
-version: 1.3.0
+description: Enforce branch naming and commit message conventions. Use when the user asks to implement something from an issue, create a branch, or commit changes. Branches follow the pattern feature/ISSUE-NUMBER from develop. Commits follow Conventional Commits 1.0.0 (type(scope): description, issue in the footer).
+version: 2.0.0
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
@@ -26,86 +26,106 @@ When implementing something derived from a GitHub issue:
 
 ## Commit Convention
 
-Every commit message must follow this exact format:
+Every commit message follows [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/):
 
 ```
-ICON TYPE-#NUMBER: Comment in English
+<type>[optional scope][!]: <description>
+
+[optional body]
+
+[optional footer(s)]
 ```
 
-When there is **no issue associated**, omit the issue number:
+When the commit is derived from an issue, reference it in a footer:
 
 ```
-ICON TYPE: Comment in English
+fix(parser): handle empty task list
+
+Refs: #42
 ```
 
-### Icons and types by language/ecosystem
+When there is **no issue associated**, omit the footer.
 
-**Detect the project language** from `pyproject.toml`, `package.json`, `Cargo.toml`, `go.mod`, etc. and use only the icons that apply.
+### Types
 
-#### Universal (all languages)
+| Type       | When to use                                                  |
+|------------|--------------------------------------------------------------|
+| `feat`     | New feature (bumps MINOR)                                    |
+| `fix`      | Bug fix (bumps PATCH)                                        |
+| `docs`     | Documentation only                                           |
+| `style`    | Formatting, whitespace, lint fixes — no behavior change      |
+| `refactor` | Code change that neither fixes a bug nor adds a feature      |
+| `perf`     | Performance improvement                                      |
+| `test`     | Adding or fixing tests                                       |
+| `build`    | Build system or dependencies (`pyproject.toml`, `package.json`, lock files, `Cargo.toml`, `go.mod`) |
+| `ci`       | CI configuration and scripts                                 |
+| `chore`    | Maintenance that touches neither source nor tests (releases, tooling) |
+| `revert`   | Reverts a previous commit                                    |
 
-| Icon | Type     | When to use                                |
-|------|----------|--------------------------------------------|
-| ⚙️   | FEATURE  | New feature                                |
-| 📌   | ISSUE    | Reference to issue / work in progress      |
-| 🪲   | BUG      | Bug fix                                    |
-| 📘   | DOCS     | Documentation changes                      |
-| ❤️   | TEST     | Automated tests                            |
-| ⬆️   | CI/CD    | Changes in continuous integration/delivery |
-| ⚠️   | SECURITY | Security improvements                      |
+The same types apply to every language — there are no language-specific types.
 
-#### Python only
+### Scope
 
-| Icon | Type     | When to use                                |
-|------|----------|--------------------------------------------|
-| 📝   | PEP8     | Formatting fixes following PEP8            |
-| 📦   | PyPI     | PyPI releases, dependency updates          |
+Optional, in parentheses, a noun naming the part of the codebase: `feat(api):`, `fix(cli):`, `build(deps):`. Use the scopes the project already uses (check `git log`); do not invent a new scope per commit.
 
-#### JavaScript / TypeScript (React, Node, etc.)
+### Breaking changes
 
-| Icon | Type     | When to use                                |
-|------|----------|--------------------------------------------|
-| 📝   | LINT     | ESLint, Prettier, formatting fixes         |
-| 📦   | NPM      | npm/yarn releases, dependency updates      |
+Mark with `!` before the colon, a `BREAKING CHANGE:` footer, or both:
 
-#### Rust
+```
+feat(api)!: drop the v1 endpoints
 
-| Icon | Type     | When to use                                |
-|------|----------|--------------------------------------------|
-| 📝   | CLIPPY   | Clippy lints and formatting fixes          |
-| 📦   | CRATE    | Crate releases, dependency updates         |
+BREAKING CHANGE: clients must call /v2.
+Refs: #42
+```
 
-#### Go
+### Formatting rules
 
-| Icon | Type     | When to use                                |
-|------|----------|--------------------------------------------|
-| 📝   | LINT     | golangci-lint, gofmt fixes                 |
-| 📦   | MOD      | go.mod dependency updates                  |
+- `type` and `scope` in lowercase
+- Description in English, imperative mood, lowercase first letter, no trailing period
+- Subject line (`type(scope): description`) under 72 characters
+- Blank line between subject, body and footers
+- Footers use `Token: value` (`Refs: #42`, `BREAKING CHANGE: ...`)
 
 ### Examples
 
-**Python:**
 ```
-⚙️ FEATURE-#42: Add S3 storage provider
-🪲 BUG-#68: Fix busy-wait loop in parallel execution mode
-📝 PEP8-#70: Fix return type annotation on TaskBuilder.add
-📦 PyPI-#42: Update dotflow to 0.15.0.dev5
-```
-
-**JavaScript / React:**
-```
-⚙️ FEATURE-#42: Add dashboard chart component
-🪲 BUG-#68: Fix state leak in useEffect cleanup
-📝 LINT-#70: Fix ESLint warnings in api module
-📦 NPM-#42: Update react to 19.1.0
+feat(storage): add S3 storage provider
+fix(executor): stop busy-wait loop in parallel mode
+style: apply ruff format to abc/server.py
+build(deps): bump dotflow to 0.15.0.dev5
+test(serializer): cover list and tuple Context items
+docs: add install instructions to README
+ci: run tests on Python 3.13
 ```
 
-**Rust:**
+---
+
+## Message length
+
+Commit messages must be **short**. Default to **subject line** plus the
+`Refs: #N` footer when there is an issue. Only add a body when there is
+a non-obvious *why* that fits in **one short sentence**. No
+multi-paragraph bodies, no bullet lists, no context dumps — the diff
+and the PR description already carry detail.
+
+### Good
+
 ```
-⚙️ FEATURE-#42: Add S3 backend for storage
-🪲 BUG-#68: Fix deadlock in async task pool
-📝 CLIPPY-#70: Fix needless borrow warnings
-📦 CRATE-#42: Bump tokio to 1.40
+feat(storage): add S3 storage provider
+
+Refs: #42
+```
+
+### Bad
+
+```
+feat: Added S3 storage provider.
+
+This commit introduces a new S3 storage provider that allows
+users to persist workflow state in S3 buckets. The provider
+implements the Storage ABC and supports...
+(long body rambles on)
 ```
 
 ---
@@ -123,7 +143,7 @@ When implementing multiple fixes or changes in the same branch, **always create 
 
 ### Commit ordering priority
 
-1. Config / dependency changes (`pyproject.toml`, `package.json`, `Cargo.toml`, lock files)
+1. Build / dependency changes (`pyproject.toml`, `package.json`, `Cargo.toml`, lock files)
 2. Implementation (source code)
 3. Tests
 4. Documentation (`README.md`, `DEPLOY.md`, release notes)
@@ -134,31 +154,31 @@ When implementing multiple fixes or changes in the same branch, **always create 
 **Python:**
 ```bash
 git add dotflow/core/serializers/task.py
-git commit -m "🪲 BUG-#247: Fix _serialize_context crash with non-Context list items"
+git commit -m "fix(serializer): handle non-Context list items" -m "Refs: #247"
 
 git add tests/core/test_serializer_task.py
-git commit -m "❤️ TEST-#247: Add tests for list, tuple, and mixed Context serialization"
+git commit -m "test(serializer): cover list, tuple and mixed Context items" -m "Refs: #247"
 
 git add pyproject.toml
-git commit -m "⚙️ FEATURE-#247: Configure pytest testpaths to exclude examples"
+git commit -m "build: limit pytest testpaths to tests/" -m "Refs: #247"
 
 git add poetry.lock
-git commit -m "📦 PyPI-#247: Regenerate poetry.lock"
+git commit -m "build(deps): regenerate poetry.lock" -m "Refs: #247"
 ```
 
 **JavaScript / React:**
 ```bash
 git add src/components/Dashboard.tsx
-git commit -m "⚙️ FEATURE-#42: Add dashboard chart component"
+git commit -m "feat(dashboard): add chart component" -m "Refs: #42"
 
 git add src/__tests__/Dashboard.test.tsx
-git commit -m "❤️ TEST-#42: Add unit tests for Dashboard component"
+git commit -m "test(dashboard): cover chart component" -m "Refs: #42"
 
 git add package.json
-git commit -m "📦 NPM-#42: Add recharts dependency"
+git commit -m "build(deps): add recharts" -m "Refs: #42"
 
 git add package-lock.json
-git commit -m "📦 NPM-#42: Regenerate package-lock.json"
+git commit -m "build(deps): regenerate package-lock.json" -m "Refs: #42"
 ```
 
 ### When NOT to split commits
@@ -173,8 +193,7 @@ git commit -m "📦 NPM-#42: Regenerate package-lock.json"
 - Bundling unrelated files in one commit (e.g. `task.py` + `README.md`)
 - Committing lock files together with source code changes
 - Committing formatting fixes together with logic changes
-- Using Python-specific types (PEP8, PyPI) in non-Python projects
-- Using JS-specific types (LINT, NPM) in non-JS projects
+- Types outside the Conventional Commits list above, uppercase types, or emoji prefixes
 
 ---
 
@@ -196,21 +215,20 @@ When the user says "implement issue #N" or "work on issue #N":
 
 3. **Implement the changes.**
 
-4. **Commit using the correct icon and type** based on the issue label:
-   - `bug` label → 🪲 BUG
-   - `enhancement` label → ⚙️ FEATURE
-   - `documentation` label → 📘 DOCS
-   - `discovery` label → 📌 ISSUE
-   - No label or unclear → use 📌 ISSUE
+4. **Commit using the matching type** based on the issue label:
+   - `bug` label → `fix`
+   - `enhancement` label → `feat`
+   - `documentation` label → `docs`
+   - No label or unclear → pick the type that describes the change (`refactor`, `chore`, …)
 
 5. **Push the branch:**
    ```bash
    git push origin feature/N
    ```
 
-6. **Open a PR targeting `develop`** (never `main`/`master` directly):
+6. **Open a PR targeting `develop`** (never `main`/`master` directly), with the title in the same format as a commit subject:
    ```bash
-   gh pr create --base develop --title "⚙️ FEATURE-#N: description" --body "Closes #N"
+   gh pr create --base develop --title "feat(scope): description" --body "Closes #N"
    ```
 
 ---
@@ -219,9 +237,9 @@ When the user says "implement issue #N" or "work on issue #N":
 
 - Never commit to `main`, `master`, or `develop` directly
 - Never branch from `main` or `master` for feature work
-- Always include the issue number in both branch name and commit message
-- Commit messages must be in English
-- **Detect the project language and use only applicable commit types**
+- Always include the issue number in the branch name and a `Refs: #N` footer in the commit
+- Commit messages follow Conventional Commits 1.0.0, in English
 - **Always create one commit per file or per logical concern — never bundle unrelated changes**
+- **Keep messages short — subject line plus footer by default; body only for a one-sentence *why* when non-obvious**
 - **Stage specific files explicitly — never use `git add .` or `git add -A`**
 - Always confirm with the user before pushing or opening a PR
