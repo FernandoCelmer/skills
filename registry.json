@@ -23,7 +23,7 @@
     },
     {
       "name": "git-flow",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "description": "Enforce branch naming (feature/ISSUE-NUMBER from develop) and Conventional Commits 1.0.0 (type(scope): description, issue in the footer) for every implementation",
       "category": "development",
       "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/git-flow/SKILL.md"

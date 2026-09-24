@@ -1,7 +1,7 @@
 ---
 name: git-flow
-description: Enforce branch naming and commit message conventions. Use when the user asks to implement something from an issue, create a branch, or commit changes. Branches follow the pattern feature/ISSUE-NUMBER from develop. Commits follow Conventional Commits 1.0.0 (type(scope): description, issue in the footer).
-version: 2.0.0
+description: "Enforce branch naming and commit message conventions. Use when the user asks to implement something from an issue, create a branch, or commit changes. Branches follow the pattern feature/ISSUE-NUMBER from develop. Commits follow Conventional Commits 1.0.0 (type(scope): description, issue in the footer)."
+version: 2.0.1
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
