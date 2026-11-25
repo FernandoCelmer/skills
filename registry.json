@@ -62,6 +62,13 @@
       "description": "Generate Python unit tests using unittest.TestCase classes — mocks via unittest.mock, AAA pattern, async support, no pytest or third-party libs",
       "category": "development",
       "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/python-unittest/SKILL.md"
+    },
+    {
+      "name": "cloud-billing-audit",
+      "version": "1.0.0",
+      "description": "Monthly financial audit across AWS, Hostinger, GitHub, OpenAI and Anthropic — spend, delta, anomalies, savings recommendations",
+      "category": "finops",
+      "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/cloud-billing-audit/SKILL.md"
     }
   ],
   "plugins": []

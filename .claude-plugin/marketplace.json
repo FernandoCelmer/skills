@@ -105,6 +105,17 @@
       "source": "./skills/python-unittest",
       "category": "development",
       "strict": false
+    },
+    {
+      "name": "cloud-billing-audit",
+      "description": "Monthly financial audit across AWS, Hostinger, GitHub, OpenAI and Anthropic — spend, delta, anomalies, savings recommendations",
+      "version": "1.0.0",
+      "author": {
+        "name": "Fernando Celmer"
+      },
+      "source": "./skills/cloud-billing-audit",
+      "category": "finops",
+      "strict": false
     }
   ]
 }
