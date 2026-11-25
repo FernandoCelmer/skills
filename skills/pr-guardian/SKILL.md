@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr edit:*), Bash(gh api:*), Bash(gh repo clone:*), Bash(gh label create:*), Bash(gh label list:*), Bash(git log:*), Bash(git diff:*), Bash(git blame:*), Bash(git status:*), Bash(git add:*), Bash(git commit:*), Bash(git push:*), Bash(git checkout:*), Bash(git ls-files:*), Bash(python3:*), Bash(jq:*), Read, Glob, Grep, Agent, Write, Edit, CronCreate, CronDelete
 description: Use this skill when the user asks to "guard PRs", "monitor PRs", "watch PRs", "vigiar PRs", "ficar de olho nos PRs", "validar e corrigir PRs", or wants continuous PR monitoring with auto-review, auto-fix of review comments, and label management across one or more repositories.
-version: 3.0.0
+version: 3.1.0
 ---
 
 # PR Guardian
@@ -9,6 +9,21 @@ version: 3.0.0
 Continuously monitor open PRs across multiple repositories. For each new PR: review code, post inline comments, fix blocking issues, apply labels, and keep watching for new PRs on a recurring interval.
 
 Make a todo list and track progress through all steps.
+
+---
+
+## Action Platform integration (optional)
+
+If the `action-platform` MCP is active (local `action-platform mcp` or remote `--remote`), prefer its tools:
+
+| Task | `gh` fallback | Action Platform tool |
+|------|---------------|----------------------|
+| Audit git-flow on PR | regex over branch/commits | `gitflow_audit` |
+| Open/propose PR for a fix branch | `gh pr create` | `propose_pull_request` → `open_pull_request` |
+| Check hosted app readiness | — | `readiness` |
+| Follow deploy/release job | polling CI | `job_status` / `job_logs` |
+
+Detection: tools under `mcp__action-platform__*` / `mcp__plugin_action-platform_*`. Absent → use the `gh` flow. Platform tools carry role + audit trail — never bypass them with a raw push/PR when available; relay refusals.
 
 ---
 

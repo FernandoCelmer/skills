@@ -9,8 +9,8 @@
     },
     {
       "name": "smart-review-pr",
-      "version": "2.0.0",
-      "description": "Comprehensive PR review covering code quality, security, architecture and design patterns",
+      "version": "2.1.0",
+      "description": "Comprehensive PR review covering code quality, security, architecture and design patterns. Delegates to the action-platform MCP when available.",
       "category": "development",
       "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/smart-review-pr/SKILL.md"
     },
@@ -23,8 +23,8 @@
     },
     {
       "name": "git-flow",
-      "version": "2.0.1",
-      "description": "Enforce branch naming (feature/ISSUE-NUMBER from develop) and Conventional Commits 1.0.0 (type(scope): description, issue in the footer) for every implementation",
+      "version": "2.1.0",
+      "description": "Enforce branch naming (feature/ISSUE-NUMBER from develop) and Conventional Commits 1.0.0 (type(scope): description, issue in the footer) for every implementation. Delegates to the action-platform MCP when available.",
       "category": "development",
       "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/git-flow/SKILL.md"
     },
@@ -37,8 +37,8 @@
     },
     {
       "name": "pr-guardian",
-      "version": "3.0.0",
-      "description": "Continuous PR monitoring with auto-review, auto-fix of review comments, and label management across repositories",
+      "version": "3.1.0",
+      "description": "Continuous PR monitoring with auto-review, auto-fix of review comments, and label management across repositories. Delegates to the action-platform MCP when available.",
       "category": "automation",
       "url": "https://raw.githubusercontent.com/FernandoCelmer/skills/master/skills/pr-guardian/SKILL.md"
     },

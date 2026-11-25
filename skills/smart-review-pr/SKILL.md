@@ -1,7 +1,7 @@
 ---
 allowed-tools: Bash(gh pr view:*), Bash(gh pr diff:*), Bash(gh pr list:*), Bash(gh pr edit:*), Bash(gh api:*), Bash(gh repo view:*), Bash(git log:*), Bash(git diff:*), Bash(git blame:*), Bash(git ls-files:*), Bash(jq:*), Bash(python3:*)
 description: Use this skill when the user asks to "validar PR", "validate PR", "review PR", "revisar PR", "checar PR", "check PR", mentions a PR number to review/validate, or asks to review a pull request before merging. Performs a comprehensive PR review covering code quality, security, architecture, design patterns, CLAUDE.md compliance and historical context — posts inline comments directly on the PR.
-version: 2.0.0
+version: 2.1.0
 ---
 
 # Review PR
@@ -9,6 +9,19 @@ version: 2.0.0
 Perform a comprehensive, high-signal review of a pull request. Catch real bugs and non-compliance issues. Avoid false positives and nitpicks.
 
 Make a todo list and track progress through all steps.
+
+---
+
+## Step 0 — Action Platform integration (optional)
+
+If the `action-platform` MCP is active (local `action-platform mcp` or remote `--remote`), extend the review with its tools:
+
+- `gitflow_audit` — branch naming, base, commit messages. Block merge on failure; link `gitflow_rules`.
+- `propose_pull_request` — dry-run title/body/base; compare against the actual PR for drift.
+- `readiness` (hosted apps) — configuration, manifests, credentials, permissions. Report scopes that fail.
+- `job_status` / `job_logs` — follow any still-running release/deploy job referenced by the PR.
+
+Detection: tools exposed under `mcp__action-platform__*` / `mcp__plugin_action-platform_*`. Absent → skip this step and use the `gh` flow below. Never bypass platform rules by posting approval locally when the MCP refuses.
 
 ---
 

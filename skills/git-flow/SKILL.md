@@ -1,11 +1,31 @@
 ---
 name: git-flow
 description: "Enforce branch naming and commit message conventions. Use when the user asks to implement something from an issue, create a branch, or commit changes. Branches follow the pattern feature/ISSUE-NUMBER from develop. Commits follow Conventional Commits 1.0.0 (type(scope): description, issue in the footer)."
-version: 2.0.1
+version: 2.1.0
 allowed-tools: Bash, Read, Edit, Write, Glob, Grep
 ---
 
 You are enforcing the project's Git flow conventions. Follow these rules strictly for every branch and commit in this session.
+
+---
+
+## Action Platform integration (optional)
+
+If the `action-platform` MCP is active (local `action-platform mcp` or remote `action-platform mcp --remote`), prefer its tools over raw `git`/`gh`:
+
+| Step | Local `git`/`gh` | Action Platform tool |
+|------|------------------|----------------------|
+| Create branch | `git checkout -b feature/N` | `start_branch(kind="feature", code="N")` |
+| Audit branch/commits | manual regex | `gitflow_audit` |
+| Explain rules | this file | `gitflow_rules` |
+| Install hooks | manual | `install_hooks` |
+| Open PR | `gh pr create` | `propose_pull_request` → user approves → `open_pull_request` |
+
+Detection order:
+1. Tools listed under `mcp__action-platform__*` / `mcp__plugin_action-platform_*` → use them.
+2. Otherwise fall through to the `git`/`gh` flow below.
+
+Platform tools carry role + audit trail. Never bypass with a raw `git push` / `gh pr create` when they are available. On a refusal, relay the reason — do not retry locally.
 
 ---
 
